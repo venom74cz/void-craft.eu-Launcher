@@ -42,12 +42,6 @@ void-craft.eu-Launcher/
 └── package.json
 ```
 
-## 🔧 Konfigurace
-
-### CurseForge API
-- API klíč: `$2a$10$u61J7NMsbxMK38t0PNiwo.qOQt.vu7zUS1u.l0U8Cz4aFLnCv8DNa`
-- Modpack ID: `1221931`
-
 ### Modpacky
 Upravit v `config/modpacks.json`
 
