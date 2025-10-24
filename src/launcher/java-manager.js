@@ -18,23 +18,43 @@ class JavaManager {
     }
 
     async getJavaPath() {
-        // Zkusit najít systémovou Javu
+        // 1. Zkusit manuální cestu z nastavení
+        const manualJava = this.getManualJavaPath();
+        if (manualJava && fs.existsSync(manualJava)) {
+            console.log('Použita manuální Java z nastavení:', manualJava);
+            return manualJava;
+        }
+
+        // 2. Zkusit najít systémovou Javu
         const systemJava = await this.findSystemJava();
         if (systemJava) {
             console.log('Nalezena systémová Java:', systemJava);
             return systemJava;
         }
 
-        // Zkusit launcher Javu
+        // 3. Zkusit launcher Javu
         const launcherJava = await this.findLauncherJava();
         if (launcherJava) {
             console.log('Nalezena launcher Java:', launcherJava);
             return launcherJava;
         }
 
-        // Stáhnout a nainstalovat Javu
+        // 4. Stáhnout a nainstalovat Javu
         console.log('Java nenalezena, stahuji...');
         return await this.downloadJava();
+    }
+
+    getManualJavaPath() {
+        try {
+            const configPath = path.join(os.homedir(), '.void-craft-launcher', 'settings.json');
+            if (fs.existsSync(configPath)) {
+                const settings = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+                return settings.javaPath || null;
+            }
+        } catch (error) {
+            console.error('Chyba při načítání manuální Java cesty:', error);
+        }
+        return null;
     }
 
     async findSystemJava() {

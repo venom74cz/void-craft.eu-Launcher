@@ -1,13 +1,16 @@
 {
   "name": "void-craft-launcher",
-  "version": "1.0.0",
+  "version": "0.2.0",
   "description": "Minecraft launcher pro void-craft.eu server",
   "main": "src/main/main.js",
   "scripts": {
     "start": "electron .",
     "build": "electron-builder"
   },
-  "author": "void-craft.eu",
+  "author": {
+    "name": "void-craft.eu",
+    "email": "admin@void-craft.eu"
+  },
   "license": "MIT",
   "dependencies": {
     "axios": "^1.6.0",
@@ -25,7 +28,15 @@
     "productName": "Void-Craft Launcher",
     "win": {
       "target": "nsis",
-      "icon": "assets/icon.ico"
+      "icon": "assets/icon.ico",
+      "verifyUpdateCodeSignature": false,
+      "requestedExecutionLevel": "asInvoker"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
     },
     "publish": {
       "provider": "github",
