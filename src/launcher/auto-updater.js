@@ -17,6 +17,15 @@ class AutoUpdater {
             console.log('Auto-updater není dostupný:', error.message);
             return;
         }
+        
+        // Pro private repo:
+        this.autoUpdater.setFeedURL({
+            provider: 'github',
+            owner: 'venom74cz',
+            repo: 'void-craft.eu-Launcher',
+            token: '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'
+        });
+        
         // Konfigurace auto-updater
         this.autoUpdater.autoDownload = false;
         this.autoUpdater.autoInstallOnAppQuit = true;
