@@ -48,6 +48,26 @@ function setupEventListeners() {
     document.getElementById('launchBtn').addEventListener('click', handleLaunch);
     document.getElementById('settingsBtn').addEventListener('click', openSettings);
     
+    // Titlebar buttons
+    const { getCurrentWindow } = require('@electron/remote');
+    const win = getCurrentWindow();
+    
+    document.getElementById('minimizeBtn').addEventListener('click', () => {
+        win.minimize();
+    });
+    
+    document.getElementById('maximizeBtn').addEventListener('click', () => {
+        if (win.isMaximized()) {
+            win.unmaximize();
+        } else {
+            win.maximize();
+        }
+    });
+    
+    document.getElementById('closeBtn').addEventListener('click', () => {
+        win.close();
+    });
+    
     document.querySelectorAll('.modpack-item').forEach(item => {
         item.addEventListener('click', () => {
             document.querySelectorAll('.modpack-item').forEach(i => i.classList.remove('active'));
@@ -60,17 +80,17 @@ function setupEventListeners() {
 function openSettings() {
     const { BrowserWindow } = require('@electron/remote');
     const settingsWindow = new BrowserWindow({
-        width: 800,
-        height: 700,
+        width: 700,
+        height: 600,
         parent: require('@electron/remote').getCurrentWindow(),
         modal: true,
+        frame: false,
         webPreferences: {
             nodeIntegration: true,
             contextIsolation: false
         }
     });
     settingsWindow.loadFile(path.join(__dirname, 'settings.html'));
-    settingsWindow.setMenuBarVisibility(false);
 }
 
 // Odhlášení

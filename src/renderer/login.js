@@ -6,6 +6,28 @@ const { ipcRenderer } = require('electron');
 
 let selectedType = null;
 
+// Titlebar buttons
+const { getCurrentWindow } = require('@electron/remote');
+const win = getCurrentWindow();
+
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('minimizeBtn').addEventListener('click', () => {
+        win.minimize();
+    });
+    
+    document.getElementById('maximizeBtn').addEventListener('click', () => {
+        if (win.isMaximized()) {
+            win.unmaximize();
+        } else {
+            win.maximize();
+        }
+    });
+    
+    document.getElementById('closeBtn').addEventListener('click', () => {
+        win.close();
+    });
+});
+
 function selectAccountType(type) {
     selectedType = type;
     

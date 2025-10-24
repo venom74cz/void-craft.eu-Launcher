@@ -7,24 +7,24 @@
     <link rel="stylesheet" href="style.css">
     <style>
         .settings-container {
-            padding: 30px;
-            max-width: 800px;
-            margin: 0 auto;
+            padding: 20px;
             color: white;
+            height: calc(100vh - 32px);
+            overflow-y: auto;
         }
         .setting-group {
             background: #1f1f3a;
             border: 1px solid #7c3aed;
             border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 20px;
+            padding: 15px;
+            margin-bottom: 15px;
         }
         .setting-group h3 {
             color: #a78bfa;
             margin-bottom: 15px;
         }
         .setting-item {
-            margin-bottom: 15px;
+            margin-bottom: 12px;
         }
         .setting-item label {
             display: block;
@@ -34,22 +34,25 @@
         .setting-item input,
         .setting-item select {
             width: 100%;
-            padding: 10px;
+            padding: 8px;
             background: #0f0f1e;
             border: 1px solid #7c3aed;
             border-radius: 6px;
             color: white;
+            font-size: 14px;
         }
         .btn-save {
             width: 100%;
-            padding: 12px;
+            padding: 10px;
             background: linear-gradient(135deg, #7c3aed, #a78bfa);
             border: none;
             border-radius: 8px;
             color: white;
             font-weight: bold;
             cursor: pointer;
-            margin-top: 10px;
+            margin-top: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
         }
         .btn-save:hover {
             transform: translateY(-2px);
@@ -58,11 +61,21 @@
     </style>
 </head>
 <body style="background: #0a0a0a;">
+    <div class="titlebar">
+        <div class="titlebar-drag">
+            <span class="titlebar-title">⚙️ Void-Craft Launcher - Nastavení</span>
+        </div>
+        <div class="titlebar-buttons">
+            <button class="titlebar-button minimize" id="minimizeBtn">─</button>
+            <button class="titlebar-button maximize" id="maximizeBtn">□</button>
+            <button class="titlebar-button close" id="closeBtn">✕</button>
+        </div>
+    </div>
     <div class="settings-container">
-        <h1 style="color: #a78bfa; margin-bottom: 30px;">⚙️ Nastavení</h1>
+        <h1 style="color: #a78bfa; margin-bottom: 20px; font-size: 24px;">⚙️ Nastavení</h1>
 
         <div class="setting-group">
-            <h3>🎮 Herní nastavení</h3>
+            <h3 style="font-size: 16px;">🎮 Herní nastavení</h3>
             <div class="setting-item">
                 <label>Alokovaná RAM (GB)</label>
                 <select id="ramAllocation">
@@ -86,7 +99,7 @@
         </div>
 
         <div class="setting-group">
-            <h3>☕ Java nastavení</h3>
+            <h3 style="font-size: 16px;">☕ Java nastavení</h3>
             <div class="setting-item">
                 <label>Cesta k Java (nechej prázdné pro automatickou detekci)</label>
                 <input type="text" id="javaPath" placeholder="C:\Program Files\Java\...">
@@ -94,7 +107,7 @@
         </div>
 
         <div class="setting-group">
-            <h3>📁 Složky</h3>
+            <h3 style="font-size: 16px;">📁 Složky</h3>
             <div class="setting-item">
                 <label>Minecraft složka</label>
                 <input type="text" id="minecraftDir" readonly>
@@ -106,7 +119,7 @@
         </div>
 
         <button class="btn-save" onclick="saveSettings()">💾 Uložit nastavení</button>
-        <button class="btn-save" style="background: #4a4a6a; margin-top: 10px;" onclick="window.close()">❌ Zavřít</button>
+        <button class="btn-save" style="background: #4a4a6a; margin-top: 8px;" onclick="window.close()">❌ Zavřít</button>
     </div>
 
     <script>
@@ -149,6 +162,26 @@
         }
 
         loadSettings();
+        
+        // Titlebar buttons
+        const { getCurrentWindow } = require('@electron/remote');
+        const win = getCurrentWindow();
+        
+        document.getElementById('minimizeBtn').addEventListener('click', () => {
+            win.minimize();
+        });
+        
+        document.getElementById('maximizeBtn').addEventListener('click', () => {
+            if (win.isMaximized()) {
+                win.unmaximize();
+            } else {
+                win.maximize();
+            }
+        });
+        
+        document.getElementById('closeBtn').addEventListener('click', () => {
+            win.close();
+        });
     </script>
 </body>
 </html>

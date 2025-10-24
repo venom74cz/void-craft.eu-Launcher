@@ -29,8 +29,8 @@
     },
     "publish": {
       "provider": "github",
-      "owner": "void-craft",
-      "repo": "launcher"
+      "owner": "venom74cz",
+      "repo": "void-craft.eu-Launcher"
     }
   }
 }

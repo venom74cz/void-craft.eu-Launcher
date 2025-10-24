@@ -11,7 +11,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 100vh;
+            height: calc(100vh - 32px);
             background: linear-gradient(180deg, #1a1a2e 0%, #0f0f1e 100%);
         }
         .login-box {
@@ -84,6 +84,16 @@
     </style>
 </head>
 <body>
+    <div class="titlebar">
+        <div class="titlebar-drag">
+            <span class="titlebar-title">🌌 Void-Craft Launcher - Přihlášení</span>
+        </div>
+        <div class="titlebar-buttons">
+            <button class="titlebar-button minimize" id="minimizeBtn">─</button>
+            <button class="titlebar-button maximize" id="maximizeBtn">□</button>
+            <button class="titlebar-button close" id="closeBtn">✕</button>
+        </div>
+    </div>
     <div class="login-container">
         <div class="login-box">
             <div class="login-logo">
