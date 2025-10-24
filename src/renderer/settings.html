@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nastavení - Void-Craft Launcher</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .settings-container {
+            padding: 30px;
+            max-width: 800px;
+            margin: 0 auto;
+            color: white;
+        }
+        .setting-group {
+            background: #1f1f3a;
+            border: 1px solid #7c3aed;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .setting-group h3 {
+            color: #a78bfa;
+            margin-bottom: 15px;
+        }
+        .setting-item {
+            margin-bottom: 15px;
+        }
+        .setting-item label {
+            display: block;
+            margin-bottom: 5px;
+            color: #9ca3af;
+        }
+        .setting-item input,
+        .setting-item select {
+            width: 100%;
+            padding: 10px;
+            background: #0f0f1e;
+            border: 1px solid #7c3aed;
+            border-radius: 6px;
+            color: white;
+        }
+        .btn-save {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #7c3aed, #a78bfa);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .btn-save:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(124, 58, 237, 0.6);
+        }
+    </style>
+</head>
+<body style="background: #0a0a0a;">
+    <div class="settings-container">
+        <h1 style="color: #a78bfa; margin-bottom: 30px;">⚙️ Nastavení</h1>
+
+        <div class="setting-group">
+            <h3>🎮 Herní nastavení</h3>
+            <div class="setting-item">
+                <label>Alokovaná RAM (GB)</label>
+                <select id="ramAllocation">
+                    <option value="2">2 GB</option>
+                    <option value="4" selected>4 GB</option>
+                    <option value="6">6 GB</option>
+                    <option value="8">8 GB</option>
+                    <option value="12">12 GB</option>
+                    <option value="16">16 GB</option>
+                </select>
+            </div>
+            <div class="setting-item">
+                <label>Rozlišení okna</label>
+                <select id="resolution">
+                    <option value="854x480">854x480</option>
+                    <option value="1280x720">1280x720</option>
+                    <option value="1920x1080" selected>1920x1080</option>
+                    <option value="2560x1440">2560x1440</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="setting-group">
+            <h3>☕ Java nastavení</h3>
+            <div class="setting-item">
+                <label>Cesta k Java (nechej prázdné pro automatickou detekci)</label>
+                <input type="text" id="javaPath" placeholder="C:\Program Files\Java\...">
+            </div>
+        </div>
+
+        <div class="setting-group">
+            <h3>📁 Složky</h3>
+            <div class="setting-item">
+                <label>Minecraft složka</label>
+                <input type="text" id="minecraftDir" readonly>
+            </div>
+            <div class="setting-item">
+                <label>Logy</label>
+                <input type="text" id="logsDir" readonly>
+            </div>
+        </div>
+
+        <button class="btn-save" onclick="saveSettings()">💾 Uložit nastavení</button>
+        <button class="btn-save" style="background: #4a4a6a; margin-top: 10px;" onclick="window.close()">❌ Zavřít</button>
+    </div>
+
+    <script>
+        const path = require('path');
+        const os = require('os');
+        const fs = require('fs');
+
+        const configPath = path.join(os.homedir(), '.void-craft-launcher', 'settings.json');
+        const minecraftDir = path.join(os.homedir(), '.void-craft-launcher', 'minecraft');
+        const logsDir = path.join(os.homedir(), '.void-craft-launcher', 'logs');
+
+        // Načíst nastavení
+        function loadSettings() {
+            document.getElementById('minecraftDir').value = minecraftDir;
+            document.getElementById('logsDir').value = logsDir;
+
+            if (fs.existsSync(configPath)) {
+                const settings = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+                if (settings.ramAllocation) document.getElementById('ramAllocation').value = settings.ramAllocation;
+                if (settings.resolution) document.getElementById('resolution').value = settings.resolution;
+                if (settings.javaPath) document.getElementById('javaPath').value = settings.javaPath;
+            }
+        }
+
+        // Uložit nastavení
+        function saveSettings() {
+            const settings = {
+                ramAllocation: document.getElementById('ramAllocation').value,
+                resolution: document.getElementById('resolution').value,
+                javaPath: document.getElementById('javaPath').value
+            };
+
+            const configDir = path.dirname(configPath);
+            if (!fs.existsSync(configDir)) {
+                fs.mkdirSync(configDir, { recursive: true });
+            }
+
+            fs.writeFileSync(configPath, JSON.stringify(settings, null, 2));
+            alert('Nastavení uloženo!');
+        }
+
+        loadSettings();
+    </script>
+</body>
+</html>

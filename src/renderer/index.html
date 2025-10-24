@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Void-Craft Launcher</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar (30%) -->
+        <div class="sidebar">
+            <div class="logo">
+                <h1>VOID-CRAFT</h1>
+                <p class="tagline">EXPLORERS OF THE VOID</p>
+                <button id="settingsBtn" class="btn-settings" title="Nastavení">⚙️</button>
+            </div>
+
+            <div class="account-section">
+                <div id="userInfo" style="text-align: center; padding: 15px; background: #1f1f3a; border-radius: 8px; border: 1px solid #7c3aed;">
+                    <div style="color: #a78bfa; font-size: 14px; margin-bottom: 5px;">Přihlášen jako:</div>
+                    <div id="currentUsername" style="color: white; font-size: 18px; font-weight: bold; margin-bottom: 10px;">Loading...</div>
+                    <button id="logoutBtn" class="btn-login" style="background: #dc2626; font-size: 14px; padding: 8px;">Odhlásit se</button>
+                </div>
+            </div>
+
+            <div class="modpacks-section">
+                <h3>Modpacky</h3>
+                <div id="modpackList" class="modpack-list">
+                    <div class="modpack-item active" data-id="1221931">
+                        <div class="modpack-icon">📦</div>
+                        <div class="modpack-info">
+                            <div class="modpack-name">Void Modpack</div>
+                            <div class="modpack-version">Načítání...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="launch-section">
+                <div id="progressBar" class="progress-bar" style="display: none;">
+                    <div class="progress-fill"></div>
+                    <span class="progress-text">0%</span>
+                </div>
+                <button id="launchBtn" class="btn-launch">SPUSTIT HRU</button>
+                <div style="margin-top: 10px; text-align: center; font-size: 11px; color: #666;">v1.0.0</div>
+            </div>
+        </div>
+
+        <!-- Main content (70%) -->
+        <div class="main-content">
+            <webview id="webview" src="https://void-craft.eu" class="webview"></webview>
+        </div>
+    </div>
+
+    <script src="renderer.js"></script>
+</body>
+</html>

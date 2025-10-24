@@ -1,0 +1,16 @@
+{
+  "modpacks": [
+    {
+      "id": "1221931",
+      "name": "Void Modpack",
+      "curseforge_id": 1221931,
+      "description": "Oficiální modpack pro void-craft.eu server",
+      "icon": "📦"
+    }
+  ],
+  "server": {
+    "name": "void-craft.eu",
+    "ip": "void-craft.eu",
+    "website": "https://void-craft.eu"
+  }
+}
