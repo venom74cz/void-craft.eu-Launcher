@@ -22,7 +22,7 @@ class MinecraftDirect {
         return false;
     }
 
-    async launch(user, versionName, javaPath, onProgress) {
+    async launch(user, versionName, javaPath, onProgress, ramAllocation = 12) {
         try {
             console.log('[MC-DIRECT] Spouštím Minecraft přímo...');
             console.log('[MC-DIRECT] Verze:', versionName);
@@ -74,9 +74,13 @@ class MinecraftDirect {
             console.log('[MC-DIRECT] JVM argumenty z JSON:', jvmArgs.length);
             
             // Spustit Minecraft (Prism přístup - vše v classpath)
+            // Nastavit paměť podle ramAllocation
+            let maxRam = Math.max(2, Number(ramAllocation) || 4);
+            let minRam = Math.max(1, Math.floor(maxRam / 2));
+            if (minRam > maxRam) minRam = maxRam;
             const javaArgs = [
-                `-Xmx8G`,
-                `-Xms4G`,
+                `-Xmx${maxRam}G`,
+                `-Xms${minRam}G`,
                 ...jvmArgs,
                 `-Djava.library.path=${path.join(this.gameDir, 'natives', versionName)}`,
                 `-cp`,

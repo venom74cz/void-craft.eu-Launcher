@@ -19,7 +19,7 @@ function createWindow() {
       contextIsolation: false,
       webviewTag: true
     },
-    icon: path.join(__dirname, '../../assets/icon.png')
+  icon: path.join(__dirname, '../../assets/VOID-CRAFT.ico')
   });
 
   // Přesměrování console.log z renderer do main (CMD)

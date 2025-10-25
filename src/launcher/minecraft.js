@@ -121,7 +121,7 @@ class MinecraftLauncher {
                     if (onProgress) onProgress(25, 'Stahuji Minecraft knihovny...');
                     await this.downloadVanillaLibraries(manifest.minecraft.version, onProgress);
                 }
-                await this.directLauncher.launch(user, modpackVersion, javaPath, onProgress);
+                await this.directLauncher.launch(user, modpackVersion, javaPath, onProgress, maxRam);
                 console.log('[MINECRAFT] Minecraft úspěšně spuštěn!');
                 return true;
             }
