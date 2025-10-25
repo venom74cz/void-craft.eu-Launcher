@@ -128,6 +128,18 @@ async function handleLaunch() {
     console.log('[LAUNCHER] Uživatel:', currentUser.username, '(' + currentUser.type + ')');
     console.log('[LAUNCHER] Modpack ID:', selectedModpack);
 
+    // Načíst nastavení RAM
+    let ramAllocation = 4;
+    try {
+        const configPath = path.join(os.homedir(), '.void-craft-launcher', 'settings.json');
+        if (fs.existsSync(configPath)) {
+            const settings = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+            if (settings.ramAllocation) ramAllocation = Number(settings.ramAllocation);
+        }
+    } catch (e) {
+        console.warn('Nepodařilo se načíst nastavení RAM:', e);
+    }
+
     const launchBtn = document.getElementById('launchBtn');
     const progressBar = document.getElementById('progressBar');
     
@@ -136,7 +148,6 @@ async function handleLaunch() {
 
     try {
         let manifest = null;
-        
         // Kontrola, zda je modpack nainstalován
         if (!modpackInstaller.isModpackInstalled(selectedModpack)) {
             console.log('[LAUNCHER] Modpack není nainstalován, začínám instalaci...');
@@ -160,7 +171,6 @@ async function handleLaunch() {
             if (require('fs').existsSync(installedPath)) {
                 const installed = JSON.parse(require('fs').readFileSync(installedPath, 'utf8'));
                 manifest = installed.manifest;
-                
                 // Zkontrolovat a doinstalovat chybějící mody
                 console.log('[LAUNCHER] Kontroluji chybějící mody...');
                 await modpackInstaller.downloadMods(manifest, (progress, text) => {
@@ -177,7 +187,7 @@ async function handleLaunch() {
         await minecraftLauncher.launch(currentUser, mcVersion, manifest, (progress, type) => {
             console.log(`[LAUNCHER] Minecraft: ${progress}% - ${type}`);
             updateProgress(50 + Math.round(progress * 0.5), type || 'Připravuji hru...');
-        });
+        }, ramAllocation);
         
         updateProgress(100, 'Hra spuštěna!');
         launchBtn.textContent = 'Ukončit hru';

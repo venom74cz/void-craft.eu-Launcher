@@ -28,7 +28,7 @@ class MinecraftLauncher {
         }
     }
 
-    async launch(user, modpackVersion = '1.20.1', manifest = null, onProgress) {
+    async launch(user, modpackVersion = '1.20.1', manifest = null, onProgress, ramAllocation = 4) {
         try {
             console.log('[MINECRAFT] ========== SPOUŠTĚNÍ MINECRAFTU ==========');
             console.log('[MINECRAFT] Verze:', modpackVersion);
@@ -94,6 +94,10 @@ class MinecraftLauncher {
             console.log('[MINECRAFT] Je modded:', isModded);
             console.log('[MINECRAFT] Verze:', modpackVersion);
 
+            // Nastavení paměti podle ramAllocation
+            let maxRam = Math.max(2, Number(ramAllocation) || 4);
+            let minRam = Math.max(1, Math.floor(maxRam / 2));
+            if (minRam > maxRam) minRam = maxRam;
             const opts = {
                 clientPackage: null,
                 authorization: this.getAuth(user),
@@ -103,8 +107,8 @@ class MinecraftLauncher {
                     type: "release"
                 },
                 memory: {
-                    max: "4G",
-                    min: "2G"
+                    max: `${maxRam}G`,
+                    min: `${minRam}G`
                 },
                 javaPath: javaPath
             };

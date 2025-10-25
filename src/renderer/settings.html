@@ -78,14 +78,11 @@
             <h3 style="font-size: 16px;">🎮 Herní nastavení</h3>
             <div class="setting-item">
                 <label>Alokovaná RAM (GB)</label>
-                <select id="ramAllocation">
-                    <option value="2">2 GB</option>
-                    <option value="4" selected>4 GB</option>
-                    <option value="6">6 GB</option>
-                    <option value="8">8 GB</option>
-                    <option value="12">12 GB</option>
-                    <option value="16">16 GB</option>
-                </select>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <input type="range" id="ramSlider" min="2" max="16" step="0.5" value="4" style="flex:2;">
+                    <input type="number" id="ramInput" min="2" max="16" step="0.5" value="4" style="width:60px;flex:1;">
+                    <span id="ramMaxInfo" style="margin-left:8px;font-size:12px;color:#a78bfa;"></span>
+                </div>
             </div>
             <div class="setting-item">
                 <label>Rozlišení okna</label>
@@ -136,18 +133,32 @@
             document.getElementById('minecraftDir').value = minecraftDir;
             document.getElementById('logsDir').value = logsDir;
 
+            // Detekce maximální RAM
+            const totalGB = Math.floor(os.totalmem() / (1024 * 1024 * 1024));
+            const ramSlider = document.getElementById('ramSlider');
+            const ramInput = document.getElementById('ramInput');
+            const ramMaxInfo = document.getElementById('ramMaxInfo');
+            ramSlider.max = Math.max(2, totalGB);
+            ramInput.max = Math.max(2, totalGB);
+            ramMaxInfo.textContent = `(Max: ${totalGB} GB)`;
+
+            let ramValue = 12;
+            if (ramValue > ramSlider.max) ramValue = ramSlider.max;
             if (fs.existsSync(configPath)) {
                 const settings = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-                if (settings.ramAllocation) document.getElementById('ramAllocation').value = settings.ramAllocation;
+                if (settings.ramAllocation) ramValue = Number(settings.ramAllocation);
                 if (settings.resolution) document.getElementById('resolution').value = settings.resolution;
                 if (settings.javaPath) document.getElementById('javaPath').value = settings.javaPath;
             }
+            ramSlider.value = ramValue;
+            ramInput.value = ramValue;
         }
 
         // Uložit nastavení
         function saveSettings() {
+            const ramValue = document.getElementById('ramInput').value;
             const settings = {
-                ramAllocation: document.getElementById('ramAllocation').value,
+                ramAllocation: ramValue,
                 resolution: document.getElementById('resolution').value,
                 javaPath: document.getElementById('javaPath').value
             };
@@ -161,7 +172,22 @@
             alert('Nastavení uloženo!');
         }
 
-        loadSettings();
+        // Synchronizace slideru a inputu
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSettings();
+            const ramSlider = document.getElementById('ramSlider');
+            const ramInput = document.getElementById('ramInput');
+            ramSlider.addEventListener('input', () => {
+                ramInput.value = ramSlider.value;
+            });
+            ramInput.addEventListener('input', () => {
+                let v = Number(ramInput.value);
+                if (isNaN(v) || v < Number(ramInput.min)) v = Number(ramInput.min);
+                if (v > Number(ramInput.max)) v = Number(ramInput.max);
+                ramInput.value = v;
+                ramSlider.value = v;
+            });
+        });
         
         // Titlebar buttons
         const { getCurrentWindow } = require('@electron/remote');

@@ -1,6 +1,6 @@
 {
   "name": "void-craft-launcher",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Minecraft launcher pro void-craft.eu server",
   "main": "src/main/main.js",
   "scripts": {
@@ -28,7 +28,7 @@
     "productName": "Void-Craft Launcher",
     "win": {
       "target": "nsis",
-      "icon": "assets/icon.ico",
+  "icon": "assets/VOID-CRAFT.ico",
       "verifyUpdateCodeSignature": false,
       "requestedExecutionLevel": "asInvoker"
     },
