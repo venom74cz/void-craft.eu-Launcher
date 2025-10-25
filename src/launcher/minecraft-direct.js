@@ -26,6 +26,7 @@ class MinecraftDirect {
         try {
             console.log('[MC-DIRECT] Spouštím Minecraft přímo...');
             console.log('[MC-DIRECT] Verze:', versionName);
+            console.log('[MC-DIRECT] Uživatel:', user.username, 'UUID:', user.uuid);
             console.log('[MC-DIRECT] Java:', javaPath);
             
             // Načíst version JSON
@@ -217,12 +218,31 @@ class MinecraftDirect {
         }
         
         // Přidat povinné argumenty
+        if (!args.includes('--username')) {
+            args.push('--username', user.username);
+        }
+        if (!args.includes('--uuid')) {
+            args.push('--uuid', user.uuid);
+        }
         if (!args.includes('--accessToken')) {
             args.push('--accessToken', user.accessToken || 'null');
+        }
+        if (!args.includes('--assetsDir')) {
+            args.push('--assetsDir', path.join(this.gameDir, 'assets'));
+        }
+        if (!args.includes('--assetIndex')) {
+            args.push('--assetIndex', this.getAssetsIndex(versionName));
         }
         if (!args.includes('--version')) {
             args.push('--version', versionName);
         }
+        
+        console.log('[MC-DIRECT] Finální argumenty hry:');
+        console.log('[MC-DIRECT] --username:', args[args.indexOf('--username') + 1] || 'CHYBÍ!');
+        console.log('[MC-DIRECT] --uuid:', args[args.indexOf('--uuid') + 1] || 'CHYBÍ!');
+        console.log('[MC-DIRECT] --accessToken:', args[args.indexOf('--accessToken') + 1] ? 'PŘÍTOMEN' : 'CHYBÍ!');
+        console.log('[MC-DIRECT] --assetsDir:', args[args.indexOf('--assetsDir') + 1] || 'CHYBÍ!');
+        console.log('[MC-DIRECT] --assetIndex:', args[args.indexOf('--assetIndex') + 1] || 'CHYBÍ!');
         
         return args;
     }
@@ -259,12 +279,13 @@ class MinecraftDirect {
     }
     
     replaceVariables(arg, user, versionName) {
-        return arg
+        const replaced = arg
             .replace(/\$\{auth_player_name\}/g, user.username)
             .replace(/\$\{version_name\}/g, versionName)
             .replace(/\$\{game_directory\}/g, this.gameDir)
             .replace(/\$\{assets_root\}/g, path.join(this.gameDir, 'assets'))
-            .replace(/\$\{assets_index_name\}/g, versionName)
+            .replace(/\$\{asset_index\}/g, this.getAssetsIndex(versionName))
+            .replace(/\$\{assets_index_name\}/g, this.getAssetsIndex(versionName))
             .replace(/\$\{auth_uuid\}/g, user.uuid)
             .replace(/\$\{auth_access_token\}/g, user.accessToken || 'null')
             .replace(/\$\{user_type\}/g, user.type === 'original' ? 'msa' : 'legacy')
@@ -275,9 +296,41 @@ class MinecraftDirect {
             .replace(/\$\{classpath_separator\}/g, path.delimiter)
             .replace(/\$\{natives_directory\}/g, path.join(this.gameDir, 'natives', versionName))
             .replace(/\$\{launcher_name\}/g, 'void-craft-launcher')
-            .replace(/\$\{launcher_version\}/g, '1.0.0')
+            .replace(/\$\{launcher_version\}/g, '0.2.0')
             .replace(/\$\{clientid\}/g, 'void-craft')
             .replace(/\$\{user_properties\}/g, '{}');
+        
+        if (arg.includes('auth_player_name') || arg.includes('auth_uuid')) {
+            console.log(`[MC-DIRECT] Argument: ${arg} -> ${replaced}`);
+        }
+        
+        return replaced;
+    }
+    
+    getAssetsIndex(versionName) {
+        // Pro modded verze použít vanilla verzi pro assets
+        if (versionName.startsWith('neoforge-')) {
+            return '17'; // NeoForge 21.x používá Minecraft 1.21.x -> assets index 17
+        } else if (versionName.includes('forge')) {
+            const vanillaVersion = versionName.split('-')[0];
+            return this.getVanillaAssetsIndex(vanillaVersion);
+        } else if (versionName.includes('fabric')) {
+            const parts = versionName.split('-');
+            const vanillaVersion = parts[parts.length - 1];
+            return this.getVanillaAssetsIndex(vanillaVersion);
+        }
+        return this.getVanillaAssetsIndex(versionName);
+    }
+    
+    getVanillaAssetsIndex(version) {
+        // Mapování Minecraft verzí na assets index
+        if (version.startsWith('1.21')) return '17';
+        if (version.startsWith('1.20')) return '16';
+        if (version.startsWith('1.19')) return '9';
+        if (version.startsWith('1.18')) return '3';
+        if (version.startsWith('1.17')) return '2';
+        if (version.startsWith('1.16')) return '1';
+        return version; // Fallback
     }
 }
 

@@ -160,6 +160,13 @@ async function handleLaunch() {
             if (require('fs').existsSync(installedPath)) {
                 const installed = JSON.parse(require('fs').readFileSync(installedPath, 'utf8'));
                 manifest = installed.manifest;
+                
+                // Zkontrolovat a doinstalovat chybějící mody
+                console.log('[LAUNCHER] Kontroluji chybějící mody...');
+                await modpackInstaller.downloadMods(manifest, (progress, text) => {
+                    console.log(`[LAUNCHER] Mody: ${progress}% - ${text}`);
+                    updateProgress(Math.round(progress * 0.3), text);
+                });
             }
         }
 
@@ -231,6 +238,16 @@ function loadSavedAccount() {
         const configPath = path.join(os.homedir(), '.void-craft-launcher', 'account.json');
         if (fs.existsSync(configPath)) {
             currentUser = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+            
+            // Opravit UUID formát pro staré účty (přidat pomlčky)
+            if (currentUser.uuid && !currentUser.uuid.includes('-')) {
+                console.log('[LAUNCHER] Opravuji UUID formát...');
+                const uuid = currentUser.uuid;
+                currentUser.uuid = `${uuid.substring(0, 8)}-${uuid.substring(8, 12)}-${uuid.substring(12, 16)}-${uuid.substring(16, 20)}-${uuid.substring(20, 32)}`;
+                saveAccount(currentUser);
+                console.log('[LAUNCHER] UUID opraveno:', currentUser.uuid);
+            }
+            
             document.getElementById('currentUsername').textContent = currentUser.username;
         } else {
             // Pokud není přihlášen, přesměrovat na login

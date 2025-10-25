@@ -121,29 +121,60 @@ class ModpackInstaller {
             fs.mkdirSync(modsDir, { recursive: true });
         }
 
-        const totalMods = manifest.files.length;
+        // Kontrola chybějících modů
+        const existingMods = fs.readdirSync(modsDir).filter(f => f.endsWith('.jar'));
+        const modsToDownload = [];
+        
+        for (const mod of manifest.files) {
+            try {
+                const modFile = await curseforge.getModFile(mod.projectID, mod.fileID);
+                const modExists = existingMods.some(existing => existing === modFile.fileName);
+                if (!modExists) {
+                    console.log(`[MODPACK] Chybí mod: ${modFile.fileName} (ID: ${mod.projectID})`);
+                    modsToDownload.push({ mod, modFile });
+                }
+            } catch (error) {
+                console.error(`[MODPACK] Chyba při kontrole modu ${mod.projectID}:`, error.message);
+            }
+        }
+        
+        console.log(`[MODPACK] Celkem modů: ${manifest.files.length}, Chybí: ${modsToDownload.length}`);
+        
+        if (modsToDownload.length === 0) {
+            console.log('[MODPACK] Všechny mody již jsou nainstalovány');
+            return;
+        }
+
+        const totalMods = modsToDownload.length;
         let completed = 0;
         let totalDownloaded = 0;
         const startTime = Date.now();
         const concurrency = 5;
         
         for (let i = 0; i < totalMods; i += concurrency) {
-            const batch = manifest.files.slice(i, i + concurrency);
+            const batch = modsToDownload.slice(i, i + concurrency);
             
-            await Promise.all(batch.map(async (mod) => {
+            await Promise.all(batch.map(async ({ mod, modFile }) => {
                 try {
-                    const modFile = await curseforge.getModFile(mod.projectID, mod.fileID);
                     const modPath = path.join(modsDir, modFile.fileName);
                     
-                    if (!fs.existsSync(modPath)) {
-                        await curseforge.downloadFile(modFile.downloadUrl, modPath, (progress, speed, downloaded) => {
-                            const elapsed = (Date.now() - startTime) / 1000;
-                            const avgSpeed = (totalDownloaded + downloaded) / elapsed / 1024 / 1024;
-                            const prog = 70 + Math.round((completed / totalMods) * 25);
-                            onProgress(prog, `Mod ${completed + 1}/${totalMods} (${avgSpeed.toFixed(2)} MB/s)`);
-                        });
-                        totalDownloaded += modFile.fileLength || 0;
+                    // Pokud API nevrátí downloadUrl, použijeme fallback URL
+                    let downloadUrl = modFile.downloadUrl;
+                    if (!downloadUrl) {
+                        // CurseForge fallback URL formát
+                        downloadUrl = `https://edge.forgecdn.net/files/${Math.floor(mod.fileID / 1000)}/${mod.fileID % 1000}/${modFile.fileName}`;
+                        console.log(`[MODPACK] Používám fallback URL pro mod ${modFile.fileName}`);
                     }
+                    
+                    console.log(`[MODPACK] Stahuji: ${modFile.fileName}`);
+                    await curseforge.downloadFile(downloadUrl, modPath, (progress, speed, downloaded) => {
+                        const elapsed = (Date.now() - startTime) / 1000;
+                        const avgSpeed = (totalDownloaded + downloaded) / elapsed / 1024 / 1024;
+                        const prog = 70 + Math.round((completed / totalMods) * 25);
+                        onProgress(prog, `Mod ${completed + 1}/${totalMods} (${avgSpeed.toFixed(2)} MB/s)`);
+                    });
+                    console.log(`[MODPACK] Staženo: ${modFile.fileName}`);
+                    totalDownloaded += modFile.fileLength || 0;
                     
                     completed++;
                     const elapsed = (Date.now() - startTime) / 1000;

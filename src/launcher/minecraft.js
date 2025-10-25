@@ -32,7 +32,8 @@ class MinecraftLauncher {
         try {
             console.log('[MINECRAFT] ========== SPOUŠTĚNÍ MINECRAFTU ==========');
             console.log('[MINECRAFT] Verze:', modpackVersion);
-            console.log('[MINECRAFT] Uživatel:', user.username);
+            console.log('[MINECRAFT] Uživatel:', user.username, '(' + user.type + ')');
+            console.log('[MINECRAFT] UUID:', user.uuid);
             
             // Získat Java
             if (onProgress) onProgress(5, 'Kontroluji Javu...');
@@ -147,7 +148,6 @@ class MinecraftLauncher {
     }
 
     async downloadVanillaLibraries(minecraftVersion, onProgress) {
-        const https = require('https');
         const axios = require('axios');
         
         // Stáhnout version manifest
@@ -192,6 +192,72 @@ class MinecraftLauncher {
         }
         
         console.log('[MINECRAFT] Všechny knihovny staženy');
+        
+        // Stáhnout assets (zvuky, textury)
+        await this.downloadAssets(versionData, onProgress);
+    }
+    
+    async downloadAssets(versionData, onProgress) {
+        const axios = require('axios');
+        
+        if (!versionData.assetIndex) {
+            console.log('[MINECRAFT] Verze nemá assetIndex');
+            return;
+        }
+        
+        const assetsDir = path.join(this.gameDir, 'assets');
+        const indexesDir = path.join(assetsDir, 'indexes');
+        const objectsDir = path.join(assetsDir, 'objects');
+        
+        [indexesDir, objectsDir].forEach(dir => {
+            if (!fs.existsSync(dir)) {
+                fs.mkdirSync(dir, { recursive: true });
+            }
+        });
+        
+        // Stáhnout asset index
+        const indexPath = path.join(indexesDir, `${versionData.assetIndex.id}.json`);
+        if (!fs.existsSync(indexPath)) {
+            console.log('[MINECRAFT] Stahuji asset index:', versionData.assetIndex.id);
+            const indexResponse = await axios.get(versionData.assetIndex.url);
+            fs.writeFileSync(indexPath, JSON.stringify(indexResponse.data, null, 2));
+        }
+        
+        const assetIndex = JSON.parse(fs.readFileSync(indexPath, 'utf8'));
+        const assets = Object.values(assetIndex.objects);
+        
+        console.log('[MINECRAFT] Stahuji', assets.length, 'assets...');
+        
+        let downloaded = 0;
+        for (const asset of assets) {
+            const hash = asset.hash;
+            const subPath = hash.substring(0, 2);
+            const assetPath = path.join(objectsDir, subPath, hash);
+            
+            if (!fs.existsSync(assetPath)) {
+                const assetDir = path.dirname(assetPath);
+                if (!fs.existsSync(assetDir)) {
+                    fs.mkdirSync(assetDir, { recursive: true });
+                }
+                
+                try {
+                    const assetUrl = `https://resources.download.minecraft.net/${subPath}/${hash}`;
+                    const response = await axios.get(assetUrl, { responseType: 'arraybuffer' });
+                    fs.writeFileSync(assetPath, Buffer.from(response.data));
+                } catch (e) {
+                    console.error('[MINECRAFT] Chyba při stahování assetu:', hash, e.message);
+                }
+            }
+            
+            downloaded++;
+            if (downloaded % 100 === 0) {
+                console.log(`[MINECRAFT] Assets: ${downloaded}/${assets.length}`);
+            }
+        }
+        
+        console.log('[MINECRAFT] Všechny assets staženy');
+        console.log('[MINECRAFT] Assets umístění:', path.join(this.gameDir, 'assets'));
+        console.log('[MINECRAFT] Assets index:', versionData.assetIndex.id);
     }
     
     getAuth(user) {

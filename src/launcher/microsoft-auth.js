@@ -121,7 +121,19 @@ class MicrosoftAuth {
         const response = await axios.get('https://api.minecraftservices.com/minecraft/profile', {
             headers: { 'Authorization': `Bearer ${mcAccessToken}` }
         });
-        return response.data;
+        const profile = response.data;
+        
+        // Přidat pomlčky do UUID (Mojang vrací bez pomlček)
+        if (profile.id && !profile.id.includes('-')) {
+            profile.id = this.formatUUID(profile.id);
+        }
+        
+        return profile;
+    }
+    
+    formatUUID(uuid) {
+        // xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx -> xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+        return `${uuid.substring(0, 8)}-${uuid.substring(8, 12)}-${uuid.substring(12, 16)}-${uuid.substring(16, 20)}-${uuid.substring(20, 32)}`;
     }
 }
 
