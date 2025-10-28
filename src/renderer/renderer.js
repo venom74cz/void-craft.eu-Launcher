@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch (error) {
         crashReporter.reportCrash(error, 'Inicializace launcheru');
         console.error('[LAUNCHER] Chyba při inicializaci:', error);
+        alert('❌ Chyba při spuštění launcheru\n\n📨 Crash report byl odeslán adminům. Podíváme se na to!');
     }
 });
 
@@ -236,7 +237,7 @@ async function handleLaunch() {
         console.error('[LAUNCHER] Stack trace:', error.stack);
         errorHandler.error('Chyba při spouštění', error);
         crashReporter.reportCrash(error, 'Spouštění hry');
-        alert('Chyba při spouštění hry: ' + errorHandler.getUserFriendlyError(error));
+        alert('❌ Chyba při spouštění hry\n\n' + errorHandler.getUserFriendlyError(error) + '\n\n📨 Crash report byl odeslán adminům. Podíváme se na to!');
         progressBar.style.display = 'none';
     } finally {
         launchBtn.disabled = false;
