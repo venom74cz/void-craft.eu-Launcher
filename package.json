@@ -16,12 +16,12 @@
     "@electron/remote": "^2.1.2",
     "adm-zip": "^0.5.10",
     "axios": "^1.6.0",
-    "electron": "^27.0.0",
     "electron-updater": "^6.1.7",
     "minecraft-launcher-core": "^3.17.3",
     "three": "^0.180.0"
   },
   "devDependencies": {
+    "electron": "^27.0.0",
     "electron-builder": "^24.9.1"
   },
   "build": {
