@@ -1,6 +1,6 @@
 {
   "name": "void-craft-launcher",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "description": "Minecraft launcher pro void-craft.eu server",
   "main": "src/main/main.js",
   "scripts": {
