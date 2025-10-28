@@ -20,27 +20,42 @@ class JavaManager {
     async getJavaPath() {
         // 1. Zkusit manuální cestu z nastavení
         const manualJava = this.getManualJavaPath();
-        if (manualJava && fs.existsSync(manualJava)) {
-            console.log('Použita manuální Java z nastavení:', manualJava);
-            return manualJava;
+        if (manualJava) {
+            const version = await this.checkJavaVersion(manualJava);
+            if (version && version >= 21) {
+                console.log('Použita manuální Java z nastavení:', manualJava, 'verze:', version);
+                return manualJava;
+            } else {
+                console.warn('Manuální Java je neplatná nebo stará verze');
+            }
         }
 
         // 2. Zkusit najít systémovou Javu
         const systemJava = await this.findSystemJava();
         if (systemJava) {
-            console.log('Nalezena systémová Java:', systemJava);
-            return systemJava;
+            const version = await this.checkJavaVersion(systemJava);
+            if (version && version >= 21) {
+                console.log('Nalezena systémová Java:', systemJava, 'verze:', version);
+                return systemJava;
+            } else {
+                console.warn('Systémová Java je stará verze:', version);
+            }
         }
 
         // 3. Zkusit launcher Javu
         const launcherJava = await this.findLauncherJava();
         if (launcherJava) {
-            console.log('Nalezena launcher Java:', launcherJava);
-            return launcherJava;
+            const version = await this.checkJavaVersion(launcherJava);
+            if (version && version >= 21) {
+                console.log('Nalezena launcher Java:', launcherJava, 'verze:', version);
+                return launcherJava;
+            } else {
+                console.warn('Launcher Java je stará verze:', version);
+            }
         }
 
         // 4. Stáhnout a nainstalovat Javu
-        console.log('Java nenalezena, stahuji...');
+        console.log('Java 21+ nenalezena, stahuji...');
         return await this.downloadJava();
     }
 
@@ -49,7 +64,13 @@ class JavaManager {
             const configPath = path.join(os.homedir(), '.void-craft-launcher', 'settings.json');
             if (fs.existsSync(configPath)) {
                 const settings = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-                return settings.javaPath || null;
+                const javaPath = settings.javaPath;
+                // Zkontrolovat zda soubor existuje
+                if (javaPath && fs.existsSync(javaPath)) {
+                    return javaPath;
+                } else if (javaPath) {
+                    console.warn('Manuální Java cesta neexistuje:', javaPath);
+                }
             }
         } catch (error) {
             console.error('Chyba při načítání manuální Java cesty:', error);
