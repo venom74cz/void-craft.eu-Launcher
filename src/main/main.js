@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const { setupIPC } = require('./ipc-handlers');
 const autoUpdater = require('../launcher/auto-updater');
@@ -66,6 +66,12 @@ app.whenReady().then(() => {
   
   setupIPC();
   createWindow();
+  
+  // IPC pro manuální kontrolu aktualizací
+  ipcMain.on('check-for-updates', () => {
+    console.log('[MAIN] Manuální kontrola aktualizací...');
+    autoUpdater.checkForUpdates();
+  });
 });
 
 app.on('window-all-closed', () => {

@@ -372,6 +372,25 @@ body {
     transform: none;
 }
 
+.btn-check-update {
+    width: 100%;
+    padding: 10px;
+    background: #4a4a6a;
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-size: 13px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-top: 8px;
+}
+
+.btn-check-update:hover {
+    background: #5a5a7a;
+    transform: translateY(-1px);
+}
+
 /* Main Content (70%) */
 .main-content {
     width: 70%;

@@ -37,7 +37,8 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
+      "createStartMenuShortcut": true,
+      "artifactName": "Void-Craft-Launcher-Setup.exe"
     },
     "publish": [
       {

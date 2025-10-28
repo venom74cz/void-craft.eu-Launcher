@@ -18,11 +18,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         loadSavedAccount();
         await loadModpackInfo();
         setupEventListeners();
+        loadVersion();
     } catch (error) {
         crashReporter.reportCrash(error, 'Inicializace launcheru');
         console.error('[LAUNCHER] Chyba při inicializaci:', error);
     }
 });
+
+function loadVersion() {
+    const version = require('../../package.json').version;
+    document.getElementById('versionInfo').textContent = `v${version}`;
+}
 
 // Načtení informací o modpacku z CurseForge
 async function loadModpackInfo() {
@@ -53,6 +59,7 @@ function setupEventListeners() {
     document.getElementById('logoutBtn').addEventListener('click', handleLogout);
     document.getElementById('launchBtn').addEventListener('click', handleLaunch);
     document.getElementById('settingsBtn').addEventListener('click', openSettings);
+    document.getElementById('checkUpdateBtn').addEventListener('click', checkForUpdates);
     
     // Titlebar buttons
     const { getCurrentWindow } = require('@electron/remote');
@@ -288,6 +295,18 @@ function loadSavedAccount() {
         errorHandler.warn('Chyba při načítání uloženého účtu', error);
         window.location.href = 'login.html';
     }
+}
+
+function checkForUpdates() {
+    const { ipcRenderer } = require('electron');
+    ipcRenderer.send('check-for-updates');
+    const btn = document.getElementById('checkUpdateBtn');
+    btn.textContent = 'Kontroluji...';
+    btn.disabled = true;
+    setTimeout(() => {
+        btn.textContent = 'Zkontrolovat aktualizace';
+        btn.disabled = false;
+    }, 3000);
 }
 
 function loadSkinDisplay(user) {
