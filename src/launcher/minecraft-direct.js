@@ -31,7 +31,13 @@ class MinecraftDirect {
             // 1. Kontrola existence Java před spuštěním
             console.log('[MC-DIRECT] Kontroluji Javu na cestě:', javaPath);
             if (!javaPath || !fs.existsSync(javaPath)) {
-                throw new Error(`Java nebyla nalezena na zadané cestě: ${javaPath}`);
+                console.warn('[MC-DIRECT] Java na cestě neexistuje, zkouším znovu získat...');
+                const javaManager = require('./java-manager');
+                javaPath = await javaManager.getJavaPath();
+                console.log('[MC-DIRECT] Nová Java cesta:', javaPath);
+                if (!fs.existsSync(javaPath)) {
+                    throw new Error(`Java nebyla nalezena ani po opětovném pokusu: ${javaPath}`);
+                }
             }
             console.log('[MC-DIRECT] Java nalezena.');
 
