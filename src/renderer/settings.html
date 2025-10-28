@@ -193,20 +193,22 @@
         const { getCurrentWindow } = require('@electron/remote');
         const win = getCurrentWindow();
         
-        document.getElementById('minimizeBtn').addEventListener('click', () => {
-            win.minimize();
-        });
-        
-        document.getElementById('maximizeBtn').addEventListener('click', () => {
-            if (win.isMaximized()) {
-                win.unmaximize();
-            } else {
-                win.maximize();
-            }
-        });
-        
-        document.getElementById('closeBtn').addEventListener('click', () => {
-            win.close();
+        window.addEventListener('load', () => {
+            document.getElementById('minimizeBtn').addEventListener('click', () => {
+                win.minimize();
+            });
+            
+            document.getElementById('maximizeBtn').addEventListener('click', () => {
+                if (win.isMaximized()) {
+                    win.unmaximize();
+                } else {
+                    win.maximize();
+                }
+            });
+            
+            document.getElementById('closeBtn').addEventListener('click', () => {
+                win.close();
+            });
         });
     </script>
 </body>

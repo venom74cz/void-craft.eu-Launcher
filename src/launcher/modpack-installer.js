@@ -89,8 +89,12 @@ class ModpackInstaller {
     copyRecursive(src, dest) {
         if (!fs.existsSync(src)) return;
         
-        if (fs.statSync(src).isDirectory()) {
+        const stats = fs.statSync(src);
+        const isDirectory = stats.isDirectory();
+        
+        if (isDirectory) {
             if (!fs.existsSync(dest)) {
+                console.log(`[MODPACK] Vytvářím složku: ${dest}`)
                 fs.mkdirSync(dest, { recursive: true });
             }
             fs.readdirSync(src).forEach(item => {
@@ -99,8 +103,10 @@ class ModpackInstaller {
         } else {
             const destDir = path.dirname(dest);
             if (!fs.existsSync(destDir)) {
+                console.log(`[MODPACK] Vytvářím složku: ${destDir}`)
                 fs.mkdirSync(destDir, { recursive: true });
             }
+            console.log(`[MODPACK] Kopíruji soubor: ${path.basename(src)} -> ${dest}`)
             fs.copyFileSync(src, dest);
         }
     }
@@ -121,21 +127,27 @@ class ModpackInstaller {
             fs.mkdirSync(modsDir, { recursive: true });
         }
 
-        // Kontrola chybějících modů
+        // Kontrola chybějících modů - PARALELNĚ
         const existingMods = fs.readdirSync(modsDir).filter(f => f.endsWith('.jar'));
         const modsToDownload = [];
         
-        for (const mod of manifest.files) {
-            try {
-                const modFile = await curseforge.getModFile(mod.projectID, mod.fileID);
-                const modExists = existingMods.some(existing => existing === modFile.fileName);
-                if (!modExists) {
-                    console.log(`[MODPACK] Chybí mod: ${modFile.fileName} (ID: ${mod.projectID})`);
-                    modsToDownload.push({ mod, modFile });
+        console.log(`[MODPACK] Kontroluji ${manifest.files.length} modů...`);
+        const checkBatchSize = 10;
+        for (let i = 0; i < manifest.files.length; i += checkBatchSize) {
+            const batch = manifest.files.slice(i, i + checkBatchSize);
+            const results = await Promise.all(batch.map(async (mod) => {
+                try {
+                    const modFile = await curseforge.getModFile(mod.projectID, mod.fileID);
+                    const modExists = existingMods.some(existing => existing === modFile.fileName);
+                    if (!modExists) {
+                        return { mod, modFile };
+                    }
+                } catch (error) {
+                    console.error(`[MODPACK] Chyba při kontrole modu ${mod.projectID}:`, error.message);
                 }
-            } catch (error) {
-                console.error(`[MODPACK] Chyba při kontrole modu ${mod.projectID}:`, error.message);
-            }
+                return null;
+            }));
+            modsToDownload.push(...results.filter(r => r !== null));
         }
         
         console.log(`[MODPACK] Celkem modů: ${manifest.files.length}, Chybí: ${modsToDownload.length}`);
@@ -149,7 +161,7 @@ class ModpackInstaller {
         let completed = 0;
         let totalDownloaded = 0;
         const startTime = Date.now();
-        const concurrency = 5;
+        const concurrency = 15;
         
         for (let i = 0; i < totalMods; i += concurrency) {
             const batch = modsToDownload.slice(i, i + concurrency);

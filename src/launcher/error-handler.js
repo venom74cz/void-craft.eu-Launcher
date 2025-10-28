@@ -16,17 +16,18 @@ class ErrorHandler {
 
     log(level, message, error = null) {
         const timestamp = new Date().toISOString();
-        const logMessage = `[${timestamp}] [${level}] ${message}`;
+        const logMessage = `[${timestamp}] [${level.toUpperCase()}] ${message}`;
         
-        console.log(logMessage);
-        
+        // Log to console
+        const consoleLog = console[level.toLowerCase()] || console.log;
+        consoleLog(logMessage);
         if (error) {
-            console.error(error);
+            consoleLog(error);
         }
 
-        // Zapsat do souboru
+        // Write to file
         const logFile = path.join(this.logDir, `launcher-${this.getDateString()}.log`);
-        const fullMessage = error ? `${logMessage}\n${error.stack}\n` : `${logMessage}\n`;
+        const fullMessage = error ? `${logMessage}\n${error.stack || error.message}\n` : `${logMessage}\n`;
         
         fs.appendFileSync(logFile, fullMessage);
     }
@@ -37,35 +38,51 @@ class ErrorHandler {
     }
 
     info(message) {
-        this.log('INFO', message);
+        this.log('info', message);
     }
 
     warn(message, error = null) {
-        this.log('WARN', message, error);
+        this.log('warn', message, error);
     }
 
     error(message, error = null) {
-        this.log('ERROR', message, error);
+        this.log('error', message, error);
     }
 
+    /**
+     * Přeloží technickou chybu na srozumitelnou hlášku pro uživatele.
+     * @param {Error} error Objekt chyby
+     * @returns {string} Srozumitelná chybová hláška
+     */
     getUserFriendlyError(error) {
-        if (error.message.includes('ENOTFOUND') || error.message.includes('ETIMEDOUT')) {
-            return 'Chyba připojení k internetu. Zkontroluj své připojení.';
+        let friendlyMessage = 'Došlo k neznámé chybě.';
+        const errorMessage = error.message || '';
+
+        if (errorMessage.includes('ENOTFOUND') || errorMessage.includes('ETIMEDOUT') || errorMessage.includes('ECONNRESET')) {
+            friendlyMessage = 'Chyba sítě. Zkontrolujte své připojení k internetu.';
         }
-        
-        if (error.message.includes('EACCES') || error.message.includes('EPERM')) {
-            return 'Nedostatečná oprávnění. Spusť launcher jako administrátor.';
+        else if (errorMessage.includes('EACCES') || errorMessage.includes('EPERM')) {
+            friendlyMessage = 'Chyba oprávnění. Zkuste spustit launcher jako administrátor.';
+        }
+        else if (errorMessage.includes('Java nebyla nalezena')) {
+            friendlyMessage = `Java nebyla nalezena. Launcher se ji pokusí stáhnout, nebo můžete nastavit cestu manuálně v nastavení.`;
+        }
+        else if (errorMessage.includes('Minecraft byl neočekávaně ukončen')) {
+            friendlyMessage = 'Minecraft se neočekávaně ukončil. Zkontrolujte logy pro více informací.';
+        }
+        else if (errorMessage.includes('authentication') || errorMessage.includes('login')) {
+            friendlyMessage = 'Chyba přihlášení. Zkuste se odhlásit a znovu přihlásit.';
+        }
+        else if (errorMessage.includes('Failed to download') || errorMessage.includes('nepodařilo stáhnout')) {
+            friendlyMessage = 'Nepodařilo se stáhnout potřebné soubory. Zkontrolujte připojení k internetu a zkuste to znovu.';
+        }
+        else {
+            // Fallback na obecnou zprávu, pokud není chyba rozpoznána
+            friendlyMessage = `Došlo k chybě: ${errorMessage}`;
         }
 
-        if (error.message.includes('Java')) {
-            return 'Problém s Javou. Zkus restartovat launcher.';
-        }
-
-        if (error.message.includes('authentication') || error.message.includes('login')) {
-            return 'Chyba přihlášení. Zkus se přihlásit znovu.';
-        }
-
-        return error.message || 'Neznámá chyba. Zkontroluj logy.';
+        // Přidat odkaz na logy
+        return `${friendlyMessage}\n\nPro více detailů zkontrolujte logy ve složce:\n${this.getLogPath()}`;
     }
 
     getLogPath() {

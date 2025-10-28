@@ -13,14 +13,15 @@
   },
   "license": "MIT",
   "dependencies": {
-    "axios": "^1.6.0",
-    "minecraft-launcher-core": "^3.17.3",
+    "@electron/remote": "^2.1.2",
     "adm-zip": "^0.5.10",
+    "axios": "^1.6.0",
+    "electron": "^27.0.0",
     "electron-updater": "^6.1.7",
-    "@electron/remote": "^2.1.2"
+    "minecraft-launcher-core": "^3.17.3",
+    "three": "^0.180.0"
   },
   "devDependencies": {
-    "electron": "^28.0.0",
     "electron-builder": "^24.9.1"
   },
   "build": {
@@ -28,7 +29,7 @@
     "productName": "Void-Craft Launcher",
     "win": {
       "target": "nsis",
-  "icon": "assets/VOID-CRAFT.ico",
+      "icon": "assets/VOID-CRAFT.ico",
       "verifyUpdateCodeSignature": false,
       "requestedExecutionLevel": "asInvoker"
     },
@@ -38,10 +39,13 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true
     },
-    "publish": {
-      "provider": "github",
-      "owner": "venom74cz",
-      "repo": "void-craft.eu-Launcher"
-    }
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "venom74cz",
+        "repo": "void-craft.eu-Launcher",
+        "releaseType": "release"
+      }
+    ]
   }
 }

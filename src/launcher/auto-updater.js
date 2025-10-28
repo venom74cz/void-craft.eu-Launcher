@@ -18,12 +18,11 @@ class AutoUpdater {
             return;
         }
         
-        // Pro private repo:
+        // GitHub Releases
         this.autoUpdater.setFeedURL({
             provider: 'github',
             owner: 'venom74cz',
-            repo: 'void-craft.eu-Launcher',
-            token: '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'
+            repo: 'void-craft.eu-Launcher'
         });
         
         // Konfigurace auto-updater

@@ -22,15 +22,18 @@
         <div class="sidebar">
             <div class="logo">
                 <h1>VOID-CRAFT</h1>
-                <p class="tagline">EXPLORERS OF THE VOID</p>
+                <p class="tagline">Český Modovaný Minecraft Server</p>
                 <button id="settingsBtn" class="btn-settings" title="Nastavení">⚙️</button>
             </div>
 
             <div class="account-section">
-                <div id="userInfo" style="text-align: center; padding: 15px; background: #1f1f3a; border-radius: 8px; border: 1px solid #7c3aed;">
-                    <div style="color: #a78bfa; font-size: 14px; margin-bottom: 5px;">Přihlášen jako:</div>
-                    <div id="currentUsername" style="color: white; font-size: 18px; font-weight: bold; margin-bottom: 10px;">Loading...</div>
-                    <button id="logoutBtn" class="btn-login" style="background: #dc2626; font-size: 14px; padding: 8px;">Odhlásit se</button>
+                <div id="userInfo" class="user-info-card">
+                    <canvas id="skinViewer" width="200" height="250"></canvas>
+                    <div class="user-details">
+                        <div style="color: #a78bfa; font-size: 12px; margin-bottom: 5px;">Přihlášen jako:</div>
+                        <div id="currentUsername" class="username-display">Loading...</div>
+                        <button id="logoutBtn" class="btn-logout">Odhlásit se</button>
+                    </div>
                 </div>
             </div>
 

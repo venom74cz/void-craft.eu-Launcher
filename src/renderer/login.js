@@ -55,13 +55,20 @@ function goBack() {
 
 async function loginMicrosoft() {
     const loadingDiv = document.getElementById('microsoft-loading');
+    const btn = event.target;
+    
+    btn.disabled = true;
+    btn.textContent = '⏳ Přihlašuji...';
     loadingDiv.style.display = 'block';
     
     try {
         const user = await microsoftAuth.login();
+        btn.textContent = '✅ Přihlášeno!';
         saveAccount(user);
         goToMainApp();
     } catch (error) {
+        btn.disabled = false;
+        btn.textContent = 'Přihlásit se přes Microsoft';
         loadingDiv.style.display = 'none';
         alert('Chyba při přihlášení: ' + error.message);
     }

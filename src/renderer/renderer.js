@@ -3,6 +3,7 @@ const minecraftLauncher = require('../launcher/minecraft');
 const modpackInstaller = require('../launcher/modpack-installer');
 const microsoftAuth = require('../launcher/microsoft-auth');
 const errorHandler = require('../launcher/error-handler');
+const crashReporter = require('../launcher/crash-reporter');
 const path = require('path');
 const os = require('os');
 const fs = require('fs');
@@ -13,9 +14,14 @@ let isLaunching = false;
 
 // Inicializace
 document.addEventListener('DOMContentLoaded', async () => {
-    loadSavedAccount();
-    await loadModpackInfo();
-    setupEventListeners();
+    try {
+        loadSavedAccount();
+        await loadModpackInfo();
+        setupEventListeners();
+    } catch (error) {
+        crashReporter.reportCrash(error, 'Inicializace launcheru');
+        console.error('[LAUNCHER] Chyba při inicializaci:', error);
+    }
 });
 
 // Načtení informací o modpacku z CurseForge
@@ -81,7 +87,7 @@ function openSettings() {
     const { BrowserWindow } = require('@electron/remote');
     const settingsWindow = new BrowserWindow({
         width: 700,
-        height: 600,
+        height: 850,
         parent: require('@electron/remote').getCurrentWindow(),
         modal: true,
         frame: false,
@@ -151,15 +157,23 @@ async function handleLaunch() {
         // Kontrola, zda je modpack nainstalován
         if (!modpackInstaller.isModpackInstalled(selectedModpack)) {
             console.log('[LAUNCHER] Modpack není nainstalován, začínám instalaci...');
-            updateProgress(0, 'Instaluji modpack...');
+            updateProgress(0, '🔍 Načítám informace o modpacku...');
             manifest = await modpackInstaller.installModpack(selectedModpack, (progress, text) => {
                 console.log(`[LAUNCHER] Instalace: ${progress}% - ${text}`);
-                updateProgress(Math.round(progress * 0.5), text);
+                // Přidání emoji pro lepší vizualizaci
+                let displayText = text;
+                if (text.includes('Načítám')) displayText = '🔍 ' + text;
+                else if (text.includes('Stahování') || text.includes('Stahuji')) displayText = '⬇️ ' + text;
+                else if (text.includes('Rozbaluji')) displayText = '📦 ' + text;
+                else if (text.includes('Mod')) displayText = '🔧 ' + text;
+                else if (text.includes('Hotovo') || text.includes('dokončena')) displayText = '✅ ' + text;
+                updateProgress(Math.round(progress * 0.5), displayText);
             });
             modpackInstaller.markAsInstalled(selectedModpack, manifest);
             console.log('[LAUNCHER] Modpack úspěšně nainstalován');
         } else {
             console.log('[LAUNCHER] Modpack již nainstalován, načítám manifest...');
+            updateProgress(5, '✅ Modpack již nainstalován');
             // Načíst manifest z instalovaného modpacku
             const installedPath = require('path').join(
                 require('os').homedir(),
@@ -171,12 +185,8 @@ async function handleLaunch() {
             if (require('fs').existsSync(installedPath)) {
                 const installed = JSON.parse(require('fs').readFileSync(installedPath, 'utf8'));
                 manifest = installed.manifest;
-                // Zkontrolovat a doinstalovat chybějící mody
-                console.log('[LAUNCHER] Kontroluji chybějící mody...');
-                await modpackInstaller.downloadMods(manifest, (progress, text) => {
-                    console.log(`[LAUNCHER] Mody: ${progress}% - ${text}`);
-                    updateProgress(Math.round(progress * 0.3), text);
-                });
+                // Mody se stahují pouze při instalaci, ne při každém spuštění
+                console.log('[LAUNCHER] Manifest načten, přeskakuji stahování modů (již nainstalováno)');
             }
         }
 
@@ -184,9 +194,18 @@ async function handleLaunch() {
         const mcVersion = manifest?.minecraft?.version || '1.20.1';
         console.log('[LAUNCHER] Minecraft verze:', mcVersion);
         console.log('[LAUNCHER] Spouštím Minecraft launcher...');
+        updateProgress(50, '🎮 Připravuji Minecraft...');
         await minecraftLauncher.launch(currentUser, mcVersion, manifest, (progress, type) => {
             console.log(`[LAUNCHER] Minecraft: ${progress}% - ${type}`);
-            updateProgress(50 + Math.round(progress * 0.5), type || 'Připravuji hru...');
+            // Přidání emoji pro lepší vizualizaci
+            let displayText = type || 'Připravuji hru...';
+            if (displayText.includes('Java')) displayText = '☕ ' + displayText;
+            else if (displayText.includes('forge') || displayText.includes('Fabric') || displayText.includes('NeoForge')) displayText = '🔨 ' + displayText;
+            else if (displayText.includes('knihovny') || displayText.includes('libraries')) displayText = '📚 ' + displayText;
+            else if (displayText.includes('Spouštím')) displayText = '🚀 ' + displayText;
+            else if (displayText.includes('assets')) displayText = '🎨 ' + displayText;
+            else displayText = '⚙️ ' + displayText;
+            updateProgress(50 + Math.round(progress * 0.5), displayText);
         }, ramAllocation);
         
         updateProgress(100, 'Hra spuštěna!');
@@ -209,6 +228,7 @@ async function handleLaunch() {
         console.error('[LAUNCHER] Chyba při spouštění:', error);
         console.error('[LAUNCHER] Stack trace:', error.stack);
         errorHandler.error('Chyba při spouštění', error);
+        crashReporter.reportCrash(error, 'Spouštění hry');
         alert('Chyba při spouštění hry: ' + errorHandler.getUserFriendlyError(error));
         progressBar.style.display = 'none';
     } finally {
@@ -259,6 +279,7 @@ function loadSavedAccount() {
             }
             
             document.getElementById('currentUsername').textContent = currentUser.username;
+            loadSkinDisplay(currentUser);
         } else {
             // Pokud není přihlášen, přesměrovat na login
             window.location.href = 'login.html';
@@ -267,4 +288,43 @@ function loadSavedAccount() {
         errorHandler.warn('Chyba při načítání uloženého účtu', error);
         window.location.href = 'login.html';
     }
+}
+
+function loadSkinDisplay(user) {
+    const canvas = document.getElementById('skinViewer');
+    const ctx = canvas.getContext('2d');
+    
+    // Načíst skin z Crafatar (3D render)
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.src = `https://crafatar.com/renders/body/${user.uuid}?overlay`;
+    
+    let rotation = 0;
+    let skinLoaded = false;
+    
+    img.onload = () => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        const maxHeight = canvas.height - 20;
+        const maxWidth = canvas.width - 20;
+        const scaleHeight = maxHeight / img.height;
+        const scaleWidth = maxWidth / img.width;
+        const scale = Math.min(scaleHeight, scaleWidth);
+        const imgWidth = img.width * scale;
+        const imgHeight = img.height * scale;
+        const x = (canvas.width - imgWidth) / 2;
+        const y = (canvas.height - imgHeight) / 2;
+        
+        ctx.drawImage(img, x, y, imgWidth, imgHeight);
+        console.log('[LAUNCHER] Skin načten pro:', user.username);
+    };
+    
+    img.onerror = () => {
+        console.warn('[LAUNCHER] Nepodařilo se načíst skin, používám výchozí');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#a78bfa';
+        ctx.font = '48px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('👤', canvas.width / 2, canvas.height / 2 + 15);
+    };
 }

@@ -97,11 +97,11 @@ class JavaManager {
 
     async downloadJava() {
         try {
-            // Adoptium (Eclipse Temurin) Java 17 pro Windows x64
-            const javaUrl = 'https://api.adoptium.net/v3/binary/latest/17/ga/windows/x64/jre/hotspot/normal/eclipse';
+            // Adoptium (Eclipse Temurin) Java 21 pro Windows x64
+            const javaUrl = 'https://api.adoptium.net/v3/binary/latest/21/ga/windows/x64/jre/hotspot/normal/eclipse';
             const zipPath = path.join(this.javaDir, 'java.zip');
 
-            console.log('Stahuji Java 17...');
+            console.log('Stahuji Java 21...');
             const response = await axios({
                 method: 'GET',
                 url: javaUrl,
@@ -133,7 +133,7 @@ class JavaManager {
             throw new Error('Java se nepodařilo nainstalovat');
         } catch (error) {
             console.error('Chyba při stahování Javy:', error);
-            throw new Error('Nepodařilo se stáhnout Javu. Nainstaluj prosím Java 17 manuálně.');
+            throw new Error('Nepodařilo se stáhnout Javu. Nainstaluj prosím Java 21 manuálně.');
         }
     }
 
