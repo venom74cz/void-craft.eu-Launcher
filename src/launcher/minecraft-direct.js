@@ -77,7 +77,32 @@ class MinecraftDirect {
             if (versionData.arguments && versionData.arguments.jvm) {
                 for (const arg of versionData.arguments.jvm) {
                     if (typeof arg === 'string') {
-                        jvmArgs.push(this.replaceVariables(arg, user, versionName));
+                        const replaced = arg
+                            .replace(/\$\{natives_directory\}/g, path.join(this.gameDir, 'natives', versionName))
+                            .replace(/\$\{launcher_name\}/g, 'void-craft-launcher')
+                            .replace(/\$\{launcher_version\}/g, '0.3.6')
+                            .replace(/\$\{classpath\}/g, '')
+                            .replace(/\$\{classpath_separator\}/g, path.delimiter)
+                            .replace(/\$\{library_directory\}/g, path.join(this.gameDir, 'libraries'))
+                            .replace(/\$\{version_name\}/g, versionName);
+                        if (replaced.trim()) {
+                            jvmArgs.push(replaced);
+                        }
+                    } else if (arg.rules) {
+                        // Zpracovat podmíněné argumenty
+                        let shouldAdd = true;
+                        for (const rule of arg.rules) {
+                            if (rule.os && rule.os.name === 'windows' && rule.action === 'allow') {
+                                shouldAdd = true;
+                            }
+                        }
+                        if (shouldAdd && arg.value) {
+                            const values = Array.isArray(arg.value) ? arg.value : [arg.value];
+                            for (const val of values) {
+                                const replacedVal = val.replace(/\$\{classpath_separator\}/g, path.delimiter);
+                                jvmArgs.push(replacedVal);
+                            }
+                        }
                     }
                 }
             }
@@ -198,18 +223,43 @@ class MinecraftDirect {
         processLibraries(versionData.libraries);
         
         console.log('[MC-DIRECT] Celkem knihoven v classpath:', libraries.length);
-        return libraries.join(path.delimiter);
+        // Nahradit všechny ${classpath_separator} za správný delimiter
+        const classpath = libraries.join(path.delimiter);
+        return classpath.replace(/\$\{classpath_separator\}/g, path.delimiter);
     }
     
     buildArguments(versionData, user, versionName) {
         const args = [];
+        
+        // Získat správný asset index z version JSON
+        let assetIndexId = '17';
+        if (versionData.assetIndex && versionData.assetIndex.id) {
+            assetIndexId = versionData.assetIndex.id;
+        } else if (versionData.inheritsFrom) {
+            // Zkusit načíst z parent verze
+            const parentJsonPath = path.join(this.gameDir, 'versions', versionData.inheritsFrom, `${versionData.inheritsFrom}.json`);
+            if (fs.existsSync(parentJsonPath)) {
+                try {
+                    const parentData = JSON.parse(fs.readFileSync(parentJsonPath, 'utf8'));
+                    if (parentData.assetIndex && parentData.assetIndex.id) {
+                        assetIndexId = parentData.assetIndex.id;
+                    }
+                } catch (e) {
+                    console.error('[MC-DIRECT] Chyba při načítání parent JSON:', e);
+                }
+            }
+        }
+        
+        console.log('[MC-DIRECT] Použit asset index:', assetIndexId);
+        
         const replacements = {
             '${auth_player_name}': user.username,
             '${version_name}': versionName,
             '${game_directory}': this.gameDir,
             '${assets_root}': path.join(this.gameDir, 'assets'),
-            '${asset_index}': this.getAssetsIndex(versionName),
-            '${assets_index_name}': this.getAssetsIndex(versionName),
+            '${game_assets}': path.join(this.gameDir, 'assets'),
+            '${asset_index}': assetIndexId,
+            '${assets_index_name}': assetIndexId,
             '${auth_uuid}': user.uuid,
             '${auth_access_token}': user.accessToken || 'null',
             '${user_type}': user.type === 'original' ? 'msa' : 'legacy',
@@ -220,7 +270,7 @@ class MinecraftDirect {
             '${classpath_separator}': path.delimiter,
             '${natives_directory}': path.join(this.gameDir, 'natives', versionName),
             '${launcher_name}': 'void-craft-launcher',
-            '${launcher_version}': '0.2.2',
+            '${launcher_version}': '0.4.2',
             '${clientid}': 'void-craft',
             '${user_properties}': '{}'
         };
@@ -237,6 +287,20 @@ class MinecraftDirect {
             for (const arg of versionData.arguments.game) {
                 if (typeof arg === 'string') {
                     args.push(replaceFunc(arg));
+                } else if (arg.rules) {
+                    // Zpracovat podmíněné argumenty
+                    let shouldAdd = true;
+                    for (const rule of arg.rules) {
+                        if (rule.action === 'disallow') {
+                            shouldAdd = false;
+                        }
+                    }
+                    if (shouldAdd && arg.value) {
+                        const values = Array.isArray(arg.value) ? arg.value : [arg.value];
+                        for (const val of values) {
+                            args.push(replaceFunc(val));
+                        }
+                    }
                 }
             }
         } else if (versionData.minecraftArguments) {
@@ -245,6 +309,28 @@ class MinecraftDirect {
                 args.push(replaceFunc(arg));
             }
         }
+        
+        // Přidat povinné argumenty pokud chybí
+        if (!args.includes('--username')) {
+            args.push('--username', user.username);
+        }
+        if (!args.includes('--uuid')) {
+            args.push('--uuid', user.uuid);
+        }
+        if (!args.includes('--accessToken')) {
+            args.push('--accessToken', user.accessToken || 'null');
+        }
+        if (!args.includes('--version')) {
+            args.push('--version', versionName);
+        }
+        if (!args.includes('--assetIndex')) {
+            args.push('--assetIndex', assetIndexId);
+        }
+        if (!args.includes('--assetsDir')) {
+            args.push('--assetsDir', path.join(this.gameDir, 'assets'));
+        }
+        
+        console.log('[MC-DIRECT] Username argument:', user.username);
         
         return args;
     }

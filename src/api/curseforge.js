@@ -44,6 +44,16 @@ class CurseForgeAPI {
         }
     }
 
+    async getMod(modId) {
+        try {
+            const response = await this.client.get(`/mods/${modId}`);
+            return response.data.data;
+        } catch (error) {
+            console.error('Chyba při načítání modu:', error);
+            throw error;
+        }
+    }
+
     async getModFile(modId, fileId) {
         try {
             const response = await this.client.get(`/mods/${modId}/files/${fileId}`);

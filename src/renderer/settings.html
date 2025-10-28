@@ -143,13 +143,13 @@
             ramMaxInfo.textContent = `(Max: ${totalGB} GB)`;
 
             let ramValue = 12;
-            if (ramValue > ramSlider.max) ramValue = ramSlider.max;
             if (fs.existsSync(configPath)) {
                 const settings = JSON.parse(fs.readFileSync(configPath, 'utf8'));
                 if (settings.ramAllocation) ramValue = Number(settings.ramAllocation);
                 if (settings.resolution) document.getElementById('resolution').value = settings.resolution;
                 if (settings.javaPath) document.getElementById('javaPath').value = settings.javaPath;
             }
+            if (ramValue > ramSlider.max) ramValue = ramSlider.max;
             ramSlider.value = ramValue;
             ramInput.value = ramValue;
         }

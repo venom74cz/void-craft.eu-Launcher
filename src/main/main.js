@@ -64,6 +64,28 @@ app.whenReady().then(() => {
     console.log('@electron/remote není dostupný:', error.message);
   }
   
+  // Přesunout .zip z mods/ do shaderpacks/ při každém spuštění
+  const fs = require('fs');
+  const os = require('os');
+  const modsDir = path.join(os.homedir(), '.void-craft-launcher', 'minecraft', 'mods');
+  const shaderpacksDir = path.join(os.homedir(), '.void-craft-launcher', 'minecraft', 'shaderpacks');
+  
+  if (!fs.existsSync(shaderpacksDir)) {
+    fs.mkdirSync(shaderpacksDir, { recursive: true });
+  }
+  
+  if (fs.existsSync(modsDir)) {
+    const files = fs.readdirSync(modsDir);
+    for (const file of files) {
+      if (file.toLowerCase().endsWith('.zip')) {
+        const oldPath = path.join(modsDir, file);
+        const newPath = path.join(shaderpacksDir, file);
+        console.log(`[STARTUP] Přesouvám .zip z mods/ do shaderpacks/: ${file}`);
+        fs.renameSync(oldPath, newPath);
+      }
+    }
+  }
+  
   setupIPC();
   createWindow();
   

@@ -123,81 +123,125 @@ class ModpackInstaller {
         if (!manifest || !manifest.files) return;
 
         const modsDir = path.join(this.minecraftDir, 'mods');
-        if (!fs.existsSync(modsDir)) {
-            fs.mkdirSync(modsDir, { recursive: true });
+        const resourcepacksDir = path.join(this.minecraftDir, 'resourcepacks');
+        const shaderpacksDir = path.join(this.minecraftDir, 'shaderpacks');
+        
+        // Vytvořit složky
+        [modsDir, resourcepacksDir, shaderpacksDir].forEach(dir => {
+            if (!fs.existsSync(dir)) {
+                fs.mkdirSync(dir, { recursive: true });
+            }
+        });
+        
+        // Přesunout všechny .zip z mods/ do shaderpacks/
+        if (fs.existsSync(modsDir)) {
+            const files = fs.readdirSync(modsDir);
+            for (const file of files) {
+                if (file.toLowerCase().endsWith('.zip')) {
+                    const oldPath = path.join(modsDir, file);
+                    const newPath = path.join(shaderpacksDir, file);
+                    console.log(`[MODPACK] Přesouvám .zip z mods/ do shaderpacks/: ${file}`);
+                    fs.renameSync(oldPath, newPath);
+                }
+            }
         }
 
-        // Kontrola chybějících modů - PARALELNĚ
-        const existingMods = fs.readdirSync(modsDir).filter(f => f.endsWith('.jar'));
-        const modsToDownload = [];
+        // Kontrola chybějících souborů - PARALELNĚ
+        const filesToDownload = [];
         
-        console.log(`[MODPACK] Kontroluji ${manifest.files.length} modů...`);
+        console.log(`[MODPACK] Kontroluji ${manifest.files.length} souborů...`);
         const checkBatchSize = 10;
         for (let i = 0; i < manifest.files.length; i += checkBatchSize) {
             const batch = manifest.files.slice(i, i + checkBatchSize);
             const results = await Promise.all(batch.map(async (mod) => {
                 try {
+                    const modInfo = await curseforge.getMod(mod.projectID);
                     const modFile = await curseforge.getModFile(mod.projectID, mod.fileID);
-                    const modExists = existingMods.some(existing => existing === modFile.fileName);
-                    if (!modExists) {
-                        return { mod, modFile };
+                    
+                    // Určit cílovou složku podle kategorie
+                    let targetDir = modsDir;
+                    let fileType = 'Mod';
+                    
+                    if (modInfo.classId === 12) {
+                        targetDir = resourcepacksDir;
+                        fileType = 'Resource Pack';
+                    } else if (modInfo.classId === 4546) {
+                        targetDir = shaderpacksDir;
+                        fileType = 'Shader Pack';
+                    }
+                    
+                    const filePath = path.join(targetDir, modFile.fileName);
+                    if (!fs.existsSync(filePath)) {
+                        return { mod, modFile, targetDir, fileType };
                     }
                 } catch (error) {
-                    console.error(`[MODPACK] Chyba při kontrole modu ${mod.projectID}:`, error.message);
+                    console.error(`[MODPACK] Chyba při kontrole ${mod.projectID}:`, error.message);
                 }
                 return null;
             }));
-            modsToDownload.push(...results.filter(r => r !== null));
+            filesToDownload.push(...results.filter(r => r !== null));
         }
         
-        console.log(`[MODPACK] Celkem modů: ${manifest.files.length}, Chybí: ${modsToDownload.length}`);
+        console.log(`[MODPACK] Celkem souborů: ${manifest.files.length}, Chybí: ${filesToDownload.length}`);
         
-        if (modsToDownload.length === 0) {
-            console.log('[MODPACK] Všechny mody již jsou nainstalovány');
+        if (filesToDownload.length === 0) {
+            console.log('[MODPACK] Všechny soubory již jsou nainstalovány');
             return;
         }
 
-        const totalMods = modsToDownload.length;
+        const totalFiles = filesToDownload.length;
         let completed = 0;
         let totalDownloaded = 0;
         const startTime = Date.now();
         const concurrency = 15;
         
-        for (let i = 0; i < totalMods; i += concurrency) {
-            const batch = modsToDownload.slice(i, i + concurrency);
+        for (let i = 0; i < totalFiles; i += concurrency) {
+            const batch = filesToDownload.slice(i, i + concurrency);
             
-            await Promise.all(batch.map(async ({ mod, modFile }) => {
+            await Promise.all(batch.map(async ({ mod, modFile, targetDir, fileType }) => {
                 try {
-                    const modPath = path.join(modsDir, modFile.fileName);
+                    const filePath = path.join(targetDir, modFile.fileName);
                     
                     // Pokud API nevrátí downloadUrl, použijeme fallback URL
                     let downloadUrl = modFile.downloadUrl;
                     if (!downloadUrl) {
-                        // CurseForge fallback URL formát
                         downloadUrl = `https://edge.forgecdn.net/files/${Math.floor(mod.fileID / 1000)}/${mod.fileID % 1000}/${modFile.fileName}`;
-                        console.log(`[MODPACK] Používám fallback URL pro mod ${modFile.fileName}`);
+                        console.log(`[MODPACK] Používám fallback URL pro ${modFile.fileName}`);
                     }
                     
-                    console.log(`[MODPACK] Stahuji: ${modFile.fileName}`);
-                    await curseforge.downloadFile(downloadUrl, modPath, (progress, speed, downloaded) => {
+                    console.log(`[MODPACK] Stahuji ${fileType}: ${modFile.fileName}`);
+                    await curseforge.downloadFile(downloadUrl, filePath, (progress, speed, downloaded) => {
                         const elapsed = (Date.now() - startTime) / 1000;
                         const avgSpeed = (totalDownloaded + downloaded) / elapsed / 1024 / 1024;
-                        const prog = 70 + Math.round((completed / totalMods) * 25);
-                        onProgress(prog, `Mod ${completed + 1}/${totalMods} (${avgSpeed.toFixed(2)} MB/s)`);
+                        const prog = 70 + Math.round((completed / totalFiles) * 25);
+                        onProgress(prog, `${fileType} ${completed + 1}/${totalFiles} (${avgSpeed.toFixed(2)} MB/s)`);
                     });
-                    console.log(`[MODPACK] Staženo: ${modFile.fileName}`);
+                    console.log(`[MODPACK] Staženo ${fileType}: ${modFile.fileName}`);
                     totalDownloaded += modFile.fileLength || 0;
                     
                     completed++;
                     const elapsed = (Date.now() - startTime) / 1000;
                     const avgSpeed = totalDownloaded / elapsed / 1024 / 1024;
-                    const progress = 70 + Math.round((completed / totalMods) * 25);
-                    onProgress(progress, `Mod ${completed}/${totalMods} (${avgSpeed.toFixed(2)} MB/s)`);
+                    const progress = 70 + Math.round((completed / totalFiles) * 25);
+                    onProgress(progress, `${fileType} ${completed}/${totalFiles} (${avgSpeed.toFixed(2)} MB/s)`);
                 } catch (error) {
-                    console.error(`Chyba při stahování modu ${mod.projectID}:`, error);
+                    console.error(`Chyba při stahování ${mod.projectID}:`, error);
                     completed++;
                 }
             }));
+        }
+        
+        // Přesunout všechny .zip z mods/ do shaderpacks/ (po stažení)
+        if (fs.existsSync(modsDir)) {
+            const files = fs.readdirSync(modsDir);
+            for (const file of files) {
+                if (file.toLowerCase().endsWith('.zip')) {
+                    const oldPath = path.join(modsDir, file);
+                    const newPath = path.join(shaderpacksDir, file);
+                    console.log(`[MODPACK] Přesouvám .zip z mods/ do shaderpacks/: ${file}`);
+                    fs.renameSync(oldPath, newPath);
+                }
+            }
         }
     }
 

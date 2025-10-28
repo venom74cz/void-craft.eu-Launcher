@@ -98,11 +98,19 @@ class MinecraftLauncher {
             let maxRam = Math.max(2, Number(ramAllocation) || 4);
             let minRam = Math.max(1, Math.floor(maxRam / 2));
             if (minRam > maxRam) minRam = maxRam;
+            // Pro modded verze použít custom JSON
+            const versionJsonPath = path.join(this.gameDir, 'versions', modpackVersion, `${modpackVersion}.json`);
+            const useCustom = isModded && fs.existsSync(versionJsonPath);
+            
             const opts = {
                 clientPackage: null,
                 authorization: this.getAuth(user),
                 root: this.gameDir,
-                version: {
+                version: useCustom ? {
+                    number: modpackVersion,
+                    type: "release",
+                    custom: versionJsonPath
+                } : {
                     number: modpackVersion,
                     type: "release"
                 },
@@ -112,9 +120,11 @@ class MinecraftLauncher {
                 },
                 javaPath: javaPath
             };
+            
+            console.log('[MINECRAFT] Používám custom JSON:', useCustom);
 
-            // Pro modded použijeme custom launcher
-            if (isModded) {
+            // Pro modded použít direct launcher
+            if (isModded && useCustom) {
                 console.log('[MINECRAFT] Spouštím modded Minecraft přímo...');
                 if (manifest && manifest.minecraft && manifest.minecraft.version) {
                     console.log('[MINECRAFT] Stahuji vanilla knihovny pro', manifest.minecraft.version);
@@ -126,7 +136,7 @@ class MinecraftLauncher {
                 return true;
             }
             
-            // Použijeme launcher core pro všechny verze
+            // Použijeme launcher core pro vanilla verze
             this.launcher.on('debug', (e) => console.log('[LAUNCHER-CORE]', e));
             this.launcher.on('data', (e) => console.log('[LAUNCHER-CORE]', e));
             this.launcher.on('progress', (e) => {
@@ -262,6 +272,16 @@ class MinecraftLauncher {
         console.log('[MINECRAFT] Všechny assets staženy');
         console.log('[MINECRAFT] Assets umístění:', path.join(this.gameDir, 'assets'));
         console.log('[MINECRAFT] Assets index:', versionData.assetIndex.id);
+    }
+    
+    getAssetIndexId(modpackVersion, manifest) {
+        if (manifest && manifest.minecraft && manifest.minecraft.version) {
+            const version = manifest.minecraft.version;
+            if (version.startsWith('1.21')) return '17';
+            if (version.startsWith('1.20')) return '16';
+            if (version.startsWith('1.19')) return '9';
+        }
+        return '17'; // Default
     }
     
     getAuth(user) {
