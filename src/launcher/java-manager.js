@@ -80,20 +80,51 @@ class JavaManager {
 
     async findSystemJava() {
         return new Promise((resolve) => {
-            exec('java -version', (error, stdout, stderr) => {
-                if (!error || stderr.includes('version')) {
-                    exec('where java', (err, out) => {
-                        if (!err && out) {
-                            resolve(out.trim().split('\n')[0]);
-                        } else {
-                            resolve(null);
-                        }
-                    });
+            // Použít where java přímo
+            exec('where java', (err, out) => {
+                if (!err && out) {
+                    const javaPath = out.trim().split('\n')[0].trim();
+                    console.log('[JAVA] Nalezena systémová Java přes where:', javaPath);
+                    resolve(javaPath);
                 } else {
-                    resolve(null);
+                    console.log('[JAVA] where java nenalezl nic, zkouším Program Files...');
+                    const javaPath = this.findJavaInProgramFiles();
+                    resolve(javaPath);
                 }
             });
         });
+    }
+    
+    findJavaInProgramFiles() {
+        const possiblePaths = [
+            'C:\\Program Files\\Java',
+            'C:\\Program Files\\Microsoft',
+            'C:\\Program Files\\Eclipse Adoptium',
+            'C:\\Program Files\\Temurin',
+            'C:\\Program Files (x86)\\Java',
+            'C:\\Program Files (x86)\\Microsoft'
+        ];
+        
+        for (const basePath of possiblePaths) {
+            if (!fs.existsSync(basePath)) continue;
+            
+            try {
+                const dirs = fs.readdirSync(basePath);
+                for (const dir of dirs) {
+                    if (dir.includes('jdk') || dir.includes('java')) {
+                        const javaExe = path.join(basePath, dir, 'bin', 'java.exe');
+                        if (fs.existsSync(javaExe)) {
+                            console.log('[JAVA] Nalezena Java v Program Files:', javaExe);
+                            return javaExe;
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error('[JAVA] Chyba při prohledávání:', basePath, e.message);
+            }
+        }
+        
+        return null;
     }
 
     async findLauncherJava() {
