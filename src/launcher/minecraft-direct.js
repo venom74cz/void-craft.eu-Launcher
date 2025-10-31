@@ -39,6 +39,9 @@ class MinecraftDirect {
                     throw new Error(`Java nebyla nalezena ani po opětovném pokusu: ${javaPath}`);
                 }
             }
+
+            
+            // 2. Logování RAM nastavení
             console.log('[MC-DIRECT] Java nalezena.');
 
             // Načíst version JSON
@@ -107,6 +110,26 @@ class MinecraftDirect {
                 }
             }
             
+            // Přidat uživatelem požadované JVM flagy na konec JVM argumentů (bez duplikací)
+            // Pokud chcete upravit seznam, měňte pouze pole extraJvmFlags.
+            const extraJvmFlags = [
+                '-XX:+UseG1GC',
+                '-XX:+UnlockExperimentalVMOptions',
+                '-XX:G1NewSizePercent=20',
+                '-XX:G1ReservePercent=20',
+                '-XX:MaxGCPauseMillis=100',
+                '-XX:G1HeapRegionSize=32M',
+                '-XX:InitiatingHeapOccupancyPercent=15',
+                '-XX:+DisableExplicitGC',
+                '-XX:MaxMetaspaceSize=1024m'
+            ];
+
+            for (const flag of extraJvmFlags) {
+                if (!jvmArgs.includes(flag)) {
+                    jvmArgs.push(flag);
+                }
+            }
+
             // 2. Logování RAM nastavení
             let maxRam = Math.max(2, Number(ramAllocation) || 4);
             let minRam = Math.max(1, Math.floor(maxRam / 2));
