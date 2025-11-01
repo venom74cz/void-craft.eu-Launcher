@@ -146,9 +146,10 @@ class JavaManager {
     }
 
     async downloadJava(progressCallback) {
+        const zipPath = path.join(this.javaDir, 'java.zip');
+        
         try {
             const javaUrl = 'https://download.oracle.com/java/21/archive/jdk-21.0.8_windows-x64_bin.zip';
-            const zipPath = path.join(this.javaDir, 'java.zip');
 
             console.log('Stahuji Java 21...');
             if (progressCallback) progressCallback('Stahuji Java 21...');
@@ -156,30 +157,19 @@ class JavaManager {
             const response = await axios({
                 method: 'GET',
                 url: javaUrl,
-                responseType: 'stream',
-                timeout: 300000, // 5 minut
-                maxRedirects: 5
-            });
-
-            const totalSize = parseInt(response.headers['content-length'], 10);
-            let downloaded = 0;
-
-            const writer = fs.createWriteStream(zipPath);
-            
-            response.data.on('data', (chunk) => {
-                downloaded += chunk.length;
-                if (progressCallback && totalSize) {
-                    const percent = Math.round((downloaded / totalSize) * 100);
-                    progressCallback(`Stahuji Java: ${percent}%`);
+                responseType: 'arraybuffer',
+                timeout: 300000,
+                maxRedirects: 5,
+                onDownloadProgress: (progressEvent) => {
+                    if (progressCallback && progressEvent.total) {
+                        const percent = Math.round((progressEvent.loaded / progressEvent.total) * 100);
+                        progressCallback(`Stahuji Java: ${percent}%`);
+                    }
                 }
             });
 
-            response.data.pipe(writer);
-
-            await new Promise((resolve, reject) => {
-                writer.on('finish', resolve);
-                writer.on('error', reject);
-            });
+            console.log('Ukládám Javu...');
+            fs.writeFileSync(zipPath, Buffer.from(response.data));
 
             console.log('Rozbaluji Javu...');
             if (progressCallback) progressCallback('Rozbaluji Javu...');
@@ -187,7 +177,10 @@ class JavaManager {
             const zip = new AdmZip(zipPath);
             zip.extractAllTo(this.javaDir, true);
 
-            fs.unlinkSync(zipPath);
+            // Smazat zip soubor
+            if (fs.existsSync(zipPath)) {
+                fs.unlinkSync(zipPath);
+            }
 
             const javaPath = await this.findLauncherJava();
             if (javaPath) {
@@ -195,9 +188,22 @@ class JavaManager {
                 return javaPath;
             }
 
-            throw new Error('Java se nepodařilo nainstalovat');
+            throw new Error('Java se nepodařilo nainstalovat - java.exe nenalezena po extrakci');
         } catch (error) {
             console.error('Chyba při stahování Javy:', error.message);
+            
+            // Vymazat poškozený zip pokud existuje
+            if (fs.existsSync(zipPath)) {
+                try {
+                    fs.unlinkSync(zipPath);
+                    console.log('[JAVA] Poškozený zip smazán');
+                } catch (e) {
+                    console.error('[JAVA] Nelze smazat poškozený zip:', e);
+                }
+            }
+            
+            const crashReporter = require('./crash-reporter');
+            crashReporter.reportCrash(error, 'Stahování Java 21');
             
             let errorMsg = 'Nepodařilo se stáhnout Javu automaticky.\n\n';
             
@@ -205,6 +211,8 @@ class JavaManager {
                 errorMsg += 'Důvod: Vypršel časový limit připojení.\n';
             } else if (error.code === 'ENOTFOUND') {
                 errorMsg += 'Důvod: Nelze se připojit k serveru.\n';
+            } else if (error.message && error.message.includes('arraybuffer')) {
+                errorMsg += 'Důvod: Chyba při stahování souboru.\n';
             } else {
                 errorMsg += `Důvod: ${error.message}\n`;
             }

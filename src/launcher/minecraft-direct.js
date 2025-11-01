@@ -10,14 +10,36 @@ class MinecraftDirect {
     }
     
     isRunning() {
-        return this.minecraftProcess !== null && !this.minecraftProcess.killed;
+        if (!this.minecraftProcess) return false;
+        try {
+            // Zkontrolovat zda proces stále běží pomocí PID
+            process.kill(this.minecraftProcess.pid, 0);
+            return true;
+        } catch (e) {
+            // Proces neběží
+            this.minecraftProcess = null;
+            return false;
+        }
     }
     
     kill() {
         if (this.minecraftProcess) {
-            this.minecraftProcess.kill();
-            this.minecraftProcess = null;
-            return true;
+            try {
+                console.log('[MC-DIRECT] Ukončuji Minecraft proces PID:', this.minecraftProcess.pid);
+                this.minecraftProcess.kill('SIGTERM');
+                setTimeout(() => {
+                    if (this.minecraftProcess) {
+                        console.log('[MC-DIRECT] Vynucené ukončení...');
+                        this.minecraftProcess.kill('SIGKILL');
+                    }
+                }, 5000);
+                this.minecraftProcess = null;
+                return true;
+            } catch (e) {
+                console.error('[MC-DIRECT] Chyba při ukončování:', e);
+                this.minecraftProcess = null;
+                return false;
+            }
         }
         return false;
     }
@@ -175,6 +197,8 @@ class MinecraftDirect {
                     throw new Error('Nepodařilo se spustit proces Minecraftu.');
                 });
 
+                let stderrBuffer = [];
+                
                 minecraft.stdout.on('data', (data) => {
                     const lines = data.toString().split('\n');
                     lines.forEach(line => {
@@ -185,7 +209,11 @@ class MinecraftDirect {
                 minecraft.stderr.on('data', (data) => {
                     const lines = data.toString().split('\n');
                     lines.forEach(line => {
-                        if (line.trim()) console.error('[MINECRAFT ERROR]', line.trim());
+                        if (line.trim()) {
+                            console.error('[MINECRAFT ERROR]', line.trim());
+                            stderrBuffer.push(line.trim());
+                            if (stderrBuffer.length > 50) stderrBuffer.shift();
+                        }
                     });
                 });
                 
@@ -193,6 +221,14 @@ class MinecraftDirect {
                 minecraft.on('close', (code) => {
                     if (code !== 0) {
                         console.error(`[MC-DIRECT] Minecraft byl neočekávaně ukončen s chybovým kódem: ${code}`);
+                        const crashReporter = require('./crash-reporter');
+                        const errorMsg = stderrBuffer.length > 0 
+                            ? `Minecraft se ukončil s chybovým kódem ${code}\n\nPoslední chyby:\n${stderrBuffer.slice(-10).join('\n')}`
+                            : `Minecraft se ukončil s chybovým kódem ${code}`;
+                        crashReporter.reportCrash(
+                            new Error(errorMsg),
+                            `Spuštění hry - Exit code: ${code}`
+                        );
                     } else {
                         console.log('[MC-DIRECT] Minecraft byl úspěšně ukončen.');
                     }

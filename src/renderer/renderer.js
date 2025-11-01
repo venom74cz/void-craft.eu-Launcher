@@ -60,6 +60,7 @@ function setupEventListeners() {
     document.getElementById('logoutBtn').addEventListener('click', handleLogout);
     document.getElementById('launchBtn').addEventListener('click', handleLaunch);
     document.getElementById('settingsBtn').addEventListener('click', openSettings);
+    document.getElementById('diagnosticsBtn').addEventListener('click', runDiagnostics);
     document.getElementById('checkUpdateBtn').addEventListener('click', checkForUpdates);
     
     // Titlebar buttons
@@ -83,10 +84,21 @@ function setupEventListeners() {
     });
     
     document.querySelectorAll('.modpack-item').forEach(item => {
-        item.addEventListener('click', () => {
+        item.addEventListener('click', (e) => {
+            // Ignorovat klik na tlačítko stažení
+            if (e.target.classList.contains('btn-download-modpack')) return;
+            
             document.querySelectorAll('.modpack-item').forEach(i => i.classList.remove('active'));
             item.classList.add('active');
             selectedModpack = item.dataset.id;
+        });
+    });
+    
+    // Přidat event listenery pro tlačítka stažení
+    document.querySelectorAll('.btn-download-modpack').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            handleDownloadModpack(btn.dataset.id);
         });
     });
 }
@@ -217,19 +229,28 @@ async function handleLaunch() {
         }, ramAllocation);
         
         updateProgress(100, 'Hra spuštěna!');
-        launchBtn.textContent = 'Ukončit hru';
         setTimeout(() => {
             progressBar.style.display = 'none';
         }, 2000);
         
-        // Kontrolovat stav každých 5 sekund
+        // Počkat chvíli než se proces spustí
+        setTimeout(async () => {
+            const running = await minecraftLauncher.isRunning();
+            if (running) {
+                launchBtn.textContent = 'Ukončit hru';
+            }
+        }, 3000);
+        
+        // Kontrolovat stav každých 3 sekundy
         const checkInterval = setInterval(async () => {
             const running = await minecraftLauncher.isRunning();
-            if (!running) {
+            if (running) {
+                launchBtn.textContent = 'Ukončit hru';
+            } else {
                 launchBtn.textContent = 'Spustit hru';
                 clearInterval(checkInterval);
             }
-        }, 5000);
+        }, 3000);
         
     } catch (error) {
         console.error('[LAUNCHER] ========== CHYBA ==========');
@@ -295,6 +316,109 @@ function loadSavedAccount() {
     } catch (error) {
         errorHandler.warn('Chyba při načítání uloženého účtu', error);
         window.location.href = 'login.html';
+    }
+}
+
+async function runDiagnostics() {
+    const btn = document.getElementById('diagnosticsBtn');
+    const progressBar = document.getElementById('progressBar');
+    
+    btn.disabled = true;
+    btn.textContent = '⏳ Testuji...';
+    progressBar.style.display = 'block';
+    
+    try {
+        const diagnostics = require('../launcher/diagnostics');
+        const results = await diagnostics.runFullDiagnostics(selectedModpack, (text) => {
+            updateProgress(50, text);
+        });
+        
+        updateProgress(100, 'Test dokončen!');
+        
+        let message = '🔍 Diagnostický test dokončen:\n\n';
+        let hasError = false;
+        
+        for (const [key, result] of Object.entries(results)) {
+            let icon = '✅';
+            if (result.status === 'error') {
+                icon = '❌';
+                hasError = true;
+            } else if (result.status === 'warning') {
+                icon = '⚠️';
+            }
+            
+            if (result.autoFixed) {
+                icon = '🔧';
+            }
+            
+            message += `${icon} ${key.toUpperCase()}: ${result.message}\n`;
+        }
+        
+        if (hasError) {
+            message += '\n\n⚠️ Byly nalezeny problémy. Zkuste spustit hru znovu.';
+        }
+        
+        alert(message);
+        
+        setTimeout(() => {
+            progressBar.style.display = 'none';
+        }, 2000);
+    } catch (error) {
+        console.error('[LAUNCHER] Chyba při diagnostice:', error);
+        alert('❌ Chyba při diagnostickém testu\n\n' + error.message);
+        progressBar.style.display = 'none';
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '🔍 Test spuštění';
+    }
+}
+
+async function handleDownloadModpack(modpackId) {
+    const btn = document.querySelector(`.btn-download-modpack[data-id="${modpackId}"]`);
+    const progressBar = document.getElementById('progressBar');
+    
+    if (modpackInstaller.isModpackInstalled(modpackId)) {
+        alert('✅ Modpack je již stažen!');
+        return;
+    }
+    
+    btn.disabled = true;
+    btn.textContent = '⏳';
+    progressBar.style.display = 'block';
+    
+    try {
+        console.log('[LAUNCHER] Stahuji modpack ID:', modpackId);
+        updateProgress(0, '🔍 Načítám informace o modpacku...');
+        
+        const manifest = await modpackInstaller.installModpack(modpackId, (progress, text) => {
+            console.log(`[LAUNCHER] Instalace: ${progress}% - ${text}`);
+            let displayText = text;
+            if (text.includes('Načítám')) displayText = '🔍 ' + text;
+            else if (text.includes('Stahování') || text.includes('Stahuji')) displayText = '⬇️ ' + text;
+            else if (text.includes('Rozbaluji')) displayText = '📦 ' + text;
+            else if (text.includes('Mod')) displayText = '🔧 ' + text;
+            else if (text.includes('Hotovo') || text.includes('dokončena')) displayText = '✅ ' + text;
+            updateProgress(progress, displayText);
+        });
+        
+        modpackInstaller.markAsInstalled(modpackId, manifest);
+        console.log('[LAUNCHER] Modpack úspěšně stažen');
+        
+        updateProgress(100, '✅ Modpack stažen!');
+        alert('✅ Modpack byl úspěšně stažen!\n\nNyní můžeš spustit hru.');
+        
+        setTimeout(() => {
+            progressBar.style.display = 'none';
+        }, 2000);
+    } catch (error) {
+        console.error('[LAUNCHER] Chyba při stahování modpacku:', error);
+        errorHandler.error('Chyba při stahování modpacku', error);
+        crashReporter.reportCrash(error, 'Stahování modpacku');
+        alert('❌ Chyba při stahování modpacku\n\n' + errorHandler.getUserFriendlyError(error));
+        progressBar.style.display = 'none';
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '⬇️';
     }
 }
 
