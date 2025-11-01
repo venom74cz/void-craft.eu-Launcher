@@ -28,7 +28,7 @@ class MinecraftLauncher {
         }
     }
 
-    async launch(user, modpackVersion = '1.20.1', manifest = null, onProgress, ramAllocation = 4) {
+    async launch(user, modpackVersion = '1.20.1', manifest = null, onProgress, ramAllocation = 12) {
         try {
             console.log('[MINECRAFT] ========== SPOUŠTĚNÍ MINECRAFTU ==========');
             console.log('[MINECRAFT] Verze:', modpackVersion);

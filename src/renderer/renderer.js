@@ -155,7 +155,7 @@ async function handleLaunch() {
     console.log('[LAUNCHER] Modpack ID:', selectedModpack);
 
     // Načíst nastavení RAM
-    let ramAllocation = 4;
+    let ramAllocation = 12;
     try {
         const configPath = path.join(os.homedir(), '.void-craft-launcher', 'settings.json');
         if (fs.existsSync(configPath)) {
