@@ -99,8 +99,6 @@ class JavaManager {
         const possiblePaths = [
             'C:\\Program Files\\Java',
             'C:\\Program Files\\Microsoft',
-            'C:\\Program Files\\Eclipse Adoptium',
-            'C:\\Program Files\\Temurin',
             'C:\\Program Files (x86)\\Java',
             'C:\\Program Files (x86)\\Microsoft'
         ];
@@ -147,20 +145,35 @@ class JavaManager {
         return null;
     }
 
-    async downloadJava() {
+    async downloadJava(progressCallback) {
         try {
-            // Adoptium (Eclipse Temurin) Java 21 pro Windows x64
-            const javaUrl = 'https://api.adoptium.net/v3/binary/latest/21/ga/windows/x64/jre/hotspot/normal/eclipse';
+            const javaUrl = 'https://download.oracle.com/java/21/archive/jdk-21.0.8_windows-x64_bin.zip';
             const zipPath = path.join(this.javaDir, 'java.zip');
 
             console.log('Stahuji Java 21...');
+            if (progressCallback) progressCallback('Stahuji Java 21...');
+
             const response = await axios({
                 method: 'GET',
                 url: javaUrl,
-                responseType: 'stream'
+                responseType: 'stream',
+                timeout: 300000, // 5 minut
+                maxRedirects: 5
             });
 
+            const totalSize = parseInt(response.headers['content-length'], 10);
+            let downloaded = 0;
+
             const writer = fs.createWriteStream(zipPath);
+            
+            response.data.on('data', (chunk) => {
+                downloaded += chunk.length;
+                if (progressCallback && totalSize) {
+                    const percent = Math.round((downloaded / totalSize) * 100);
+                    progressCallback(`Stahuji Java: ${percent}%`);
+                }
+            });
+
             response.data.pipe(writer);
 
             await new Promise((resolve, reject) => {
@@ -169,13 +182,13 @@ class JavaManager {
             });
 
             console.log('Rozbaluji Javu...');
+            if (progressCallback) progressCallback('Rozbaluji Javu...');
+            
             const zip = new AdmZip(zipPath);
             zip.extractAllTo(this.javaDir, true);
 
-            // Smazat zip
             fs.unlinkSync(zipPath);
 
-            // Najít java.exe
             const javaPath = await this.findLauncherJava();
             if (javaPath) {
                 console.log('Java úspěšně nainstalována:', javaPath);
@@ -184,8 +197,23 @@ class JavaManager {
 
             throw new Error('Java se nepodařilo nainstalovat');
         } catch (error) {
-            console.error('Chyba při stahování Javy:', error);
-            throw new Error('Nepodařilo se stáhnout Javu. Nainstaluj prosím Java 21 manuálně.');
+            console.error('Chyba při stahování Javy:', error.message);
+            
+            let errorMsg = 'Nepodařilo se stáhnout Javu automaticky.\n\n';
+            
+            if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
+                errorMsg += 'Důvod: Vypršel časový limit připojení.\n';
+            } else if (error.code === 'ENOTFOUND') {
+                errorMsg += 'Důvod: Nelze se připojit k serveru.\n';
+            } else {
+                errorMsg += `Důvod: ${error.message}\n`;
+            }
+            
+            errorMsg += '\nStáhni a nainstaluj Java 21 manuálně:\n';
+            errorMsg += 'https://download.oracle.com/java/21/archive/jdk-21.0.8_windows-x64_bin.exe\n\n';
+            errorMsg += 'Nebo nastav cestu k existující Javě v Nastavení.';
+            
+            throw new Error(errorMsg);
         }
     }
 
