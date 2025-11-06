@@ -153,7 +153,8 @@ class MinecraftDirect {
             }
 
             // 2. Logování RAM nastavení
-            let maxRam = Math.max(2, Number(ramAllocation) || 4);
+            // Zaokrouhlit na celá čísla - Java nepřijímá desetinná čísla v -Xmx/-Xms
+            let maxRam = Math.max(2, Math.round(Number(ramAllocation) || 4));
             let minRam = Math.max(1, Math.floor(maxRam / 2));
             if (minRam > maxRam) minRam = maxRam;
             console.log(`[MC-DIRECT] Alokace RAM: -Xms${minRam}G -Xmx${maxRam}G`);
