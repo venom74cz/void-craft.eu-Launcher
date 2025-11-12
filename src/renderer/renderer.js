@@ -438,10 +438,11 @@ function loadSkinDisplay(user) {
     const canvas = document.getElementById('skinViewer');
     const ctx = canvas.getContext('2d');
     
-    // Načíst skin z Crafatar (3D render)
+    // Načíst skin z Crafatar (3D render) s timestamp pro vynučení refresh
     const img = new Image();
     img.crossOrigin = 'anonymous';
-    img.src = `https://crafatar.com/renders/body/${user.uuid}?overlay`;
+    const timestamp = Date.now();
+    img.src = `https://crafatar.com/renders/body/${user.uuid}?overlay&t=${timestamp}`;
     
     let rotation = 0;
     let skinLoaded = false;

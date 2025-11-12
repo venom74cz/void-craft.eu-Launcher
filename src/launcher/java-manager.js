@@ -17,7 +17,7 @@ class JavaManager {
         }
     }
 
-    async getJavaPath() {
+    async getJavaPath(progressCallback) {
         // 1. Zkusit manuální cestu z nastavení
         const manualJava = this.getManualJavaPath();
         if (manualJava) {
@@ -56,7 +56,7 @@ class JavaManager {
 
         // 4. Stáhnout a nainstalovat Javu
         console.log('Java 21+ nenalezena, stahuji...');
-        return await this.downloadJava();
+        return await this.downloadJava(progressCallback);
     }
 
     getManualJavaPath() {
@@ -80,14 +80,14 @@ class JavaManager {
 
     async findSystemJava() {
         return new Promise((resolve) => {
-            // Použít where java přímo
+            // Zkusit where java (může být nestandardní instalace)
             exec('where java', (err, out) => {
                 if (!err && out) {
                     const javaPath = out.trim().split('\n')[0].trim();
-                    console.log('[JAVA] Nalezena systémová Java přes where:', javaPath);
+                    console.log('[JAVA] Nalezena Java přes where:', javaPath);
                     resolve(javaPath);
                 } else {
-                    console.log('[JAVA] where java nenalezl nic, zkouším Program Files...');
+                    console.log('[JAVA] where java nenalezl nic, zkouším Adoptium složky...');
                     const javaPath = this.findJavaInProgramFiles();
                     resolve(javaPath);
                 }
@@ -97,10 +97,8 @@ class JavaManager {
     
     findJavaInProgramFiles() {
         const possiblePaths = [
-            'C:\\Program Files\\Java',
-            'C:\\Program Files\\Microsoft',
-            'C:\\Program Files (x86)\\Java',
-            'C:\\Program Files (x86)\\Microsoft'
+            'C:\\Program Files\\Eclipse Adoptium',
+            'C:\\Program Files (x86)\\Eclipse Adoptium'
         ];
         
         for (const basePath of possiblePaths) {
@@ -109,16 +107,14 @@ class JavaManager {
             try {
                 const dirs = fs.readdirSync(basePath);
                 for (const dir of dirs) {
-                    if (dir.includes('jdk') || dir.includes('java')) {
-                        const javaExe = path.join(basePath, dir, 'bin', 'java.exe');
-                        if (fs.existsSync(javaExe)) {
-                            console.log('[JAVA] Nalezena Java v Program Files:', javaExe);
-                            return javaExe;
-                        }
+                    const javaExe = path.join(basePath, dir, 'bin', 'java.exe');
+                    if (fs.existsSync(javaExe)) {
+                        console.log('[JAVA] Nalezena Adoptium Java:', javaExe);
+                        return javaExe;
                     }
                 }
             } catch (e) {
-                console.error('[JAVA] Chyba při prohledávání:', basePath, e.message);
+                console.error('[JAVA] Chyba při prohledávání Adoptium:', basePath, e.message);
             }
         }
         
@@ -149,10 +145,11 @@ class JavaManager {
         const zipPath = path.join(this.javaDir, 'java.zip');
         
         try {
-            const javaUrl = 'https://download.oracle.com/java/21/archive/jdk-21.0.8_windows-x64_bin.zip';
+            // Adoptium (Eclipse Temurin) Java 21 LTS
+            const javaUrl = 'https://api.adoptium.net/v3/binary/latest/21/ga/windows/x64/jdk/hotspot/normal/eclipse';
 
-            console.log('Stahuji Java 21...');
-            if (progressCallback) progressCallback('Stahuji Java 21...');
+            console.log('Stahuji Java 21 (Adoptium)...');
+            if (progressCallback) progressCallback('Stahuji Java 21 (Adoptium)...');
 
             const response = await axios({
                 method: 'GET',
@@ -184,7 +181,7 @@ class JavaManager {
 
             const javaPath = await this.findLauncherJava();
             if (javaPath) {
-                console.log('Java úspěšně nainstalována:', javaPath);
+                console.log('Java úspěšně nainstalována (Adoptium):', javaPath);
                 return javaPath;
             }
 
@@ -218,7 +215,7 @@ class JavaManager {
             }
             
             errorMsg += '\nStáhni a nainstaluj Java 21 manuálně:\n';
-            errorMsg += 'https://download.oracle.com/java/21/archive/jdk-21.0.8_windows-x64_bin.exe\n\n';
+            errorMsg += 'https://adoptium.net/temurin/releases/?version=21\n\n';
             errorMsg += 'Nebo nastav cestu k existující Javě v Nastavení.';
             
             throw new Error(errorMsg);
@@ -229,6 +226,13 @@ class JavaManager {
         return new Promise((resolve) => {
             exec(`"${javaPath}" -version`, (error, stdout, stderr) => {
                 if (!error || stderr) {
+                    // Kontrola zda je to Adoptium (Temurin)
+                    if (!stderr.includes('Temurin')) {
+                        console.warn('[JAVA] Není Adoptium/Temurin:', javaPath);
+                        resolve(null);
+                        return;
+                    }
+                    
                     const versionMatch = stderr.match(/version "(\d+)/);
                     if (versionMatch) {
                         resolve(parseInt(versionMatch[1]));

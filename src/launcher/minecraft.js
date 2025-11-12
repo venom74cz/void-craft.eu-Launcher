@@ -38,7 +38,9 @@ class MinecraftLauncher {
             // Získat Java
             if (onProgress) onProgress(5, 'Kontroluji Javu...');
             console.log('[MINECRAFT] Kontroluji Javu...');
-            const javaPath = await javaManager.getJavaPath();
+            const javaPath = await javaManager.getJavaPath((text) => {
+                if (onProgress) onProgress(5, text);
+            });
             console.log('[MINECRAFT] Použita Java:', javaPath);
 
             // Nainstalovat mod loader pokud je potřeba
@@ -186,6 +188,7 @@ class MinecraftLauncher {
         }
         
         console.log('[MINECRAFT] Stahuji', versionData.libraries.length, 'knihoven...');
+        let libIndex = 0;
         for (const lib of versionData.libraries) {
             if (lib.downloads && lib.downloads.artifact) {
                 const libPath = path.join(librariesDir, lib.downloads.artifact.path);
@@ -197,6 +200,10 @@ class MinecraftLauncher {
                     }
                     
                     try {
+                        if (onProgress) {
+                            const progress = 25 + Math.round((libIndex / versionData.libraries.length) * 5);
+                            onProgress(progress, `Knihovna ${libIndex + 1}/${versionData.libraries.length}`);
+                        }
                         const response = await axios.get(lib.downloads.artifact.url, { responseType: 'arraybuffer' });
                         fs.writeFileSync(libPath, Buffer.from(response.data));
                     } catch (e) {
@@ -204,6 +211,7 @@ class MinecraftLauncher {
                     }
                 }
             }
+            libIndex++;
         }
         
         console.log('[MINECRAFT] Všechny knihovny staženy');
@@ -265,6 +273,10 @@ class MinecraftLauncher {
             }
             
             downloaded++;
+            if (downloaded % 50 === 0 && onProgress) {
+                const progress = 30 + Math.round((downloaded / assets.length) * 10);
+                onProgress(progress, `Assets ${downloaded}/${assets.length}`);
+            }
             if (downloaded % 100 === 0) {
                 console.log(`[MINECRAFT] Assets: ${downloaded}/${assets.length}`);
             }

@@ -132,18 +132,31 @@ class MinecraftDirect {
                 }
             }
             
-            // Přidat uživatelem požadované JVM flagy na konec JVM argumentů (bez duplikací)
-            // Pokud chcete upravit seznam, měňte pouze pole extraJvmFlags.
+            // Optimalizované JVM flagy pro Minecraft (Java 21+ s Shenandoah GC)
             const extraJvmFlags = [
-                '-XX:+UseG1GC',
                 '-XX:+UnlockExperimentalVMOptions',
-                '-XX:G1NewSizePercent=20',
-                '-XX:G1ReservePercent=20',
-                '-XX:MaxGCPauseMillis=100',
-                '-XX:G1HeapRegionSize=32M',
-                '-XX:InitiatingHeapOccupancyPercent=15',
+                '-XX:+UnlockDiagnosticVMOptions',
+                '-XX:+AlwaysActAsServerClassMachine',
+                '-XX:+AlwaysPreTouch',
                 '-XX:+DisableExplicitGC',
-                '-XX:MaxMetaspaceSize=1024m'
+                '-XX:+UseNUMA',
+                '-XX:NmethodSweepActivity=1',
+                '-XX:ReservedCodeCacheSize=400M',
+                '-XX:NonNMethodCodeHeapSize=12M',
+                '-XX:ProfiledCodeHeapSize=194M',
+                '-XX:NonProfiledCodeHeapSize=194M',
+                '-XX:-DontCompileHugeMethods',
+                '-XX:MaxNodeLimit=240000',
+                '-XX:NodeLimitFudgeFactor=8000',
+                '-XX:+UseVectorCmov',
+                '-XX:+PerfDisableSharedMem',
+                '-XX:+UseFastUnorderedTimeStamps',
+                '-XX:+UseCriticalJavaThreadPriority',
+                '-XX:ThreadPriorityPolicy=1',
+                '-XX:AllocatePrefetchStyle=1',
+                '-XX:+UseShenandoahGC',
+                '-XX:ShenandoahGCMode=iu',
+                '-XX:ShenandoahGuaranteedGCInterval=1000000'
             ];
 
             for (const flag of extraJvmFlags) {
