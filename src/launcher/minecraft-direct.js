@@ -132,7 +132,7 @@ class MinecraftDirect {
                 }
             }
             
-            // Optimalizované JVM flagy pro Minecraft (Java 21+ s Shenandoah GC)
+            // Optimalizované JVM flagy pro Minecraft (Java 21+ s G1GC)
             const extraJvmFlags = [
                 '-XX:+UnlockExperimentalVMOptions',
                 '-XX:+UnlockDiagnosticVMOptions',
@@ -153,10 +153,20 @@ class MinecraftDirect {
                 '-XX:+UseFastUnorderedTimeStamps',
                 '-XX:+UseCriticalJavaThreadPriority',
                 '-XX:ThreadPriorityPolicy=1',
-                '-XX:AllocatePrefetchStyle=1',
-                '-XX:+UseShenandoahGC',
-                '-XX:ShenandoahGCMode=iu',
-                '-XX:ShenandoahGuaranteedGCInterval=1000000'
+                '-XX:AllocatePrefetchStyle=3',
+                '-XX:+UseG1GC',
+                '-XX:MaxGCPauseMillis=50',
+                '-XX:G1HeapRegionSize=16M',
+                '-XX:G1NewSizePercent=23',
+                '-XX:G1ReservePercent=20',
+                '-XX:SurvivorRatio=32',
+                '-XX:G1MixedGCCountTarget=3',
+                '-XX:G1HeapWastePercent=20',
+                '-XX:InitiatingHeapOccupancyPercent=10',
+                '-XX:G1RSetUpdatingPauseTimePercent=0',
+                '-XX:MaxTenuringThreshold=1',
+                '-XX:+UseLargePages',
+                '-XX:LargePageSizeInBytes=2m'
             ];
 
             for (const flag of extraJvmFlags) {
