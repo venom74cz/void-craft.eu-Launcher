@@ -1,10 +1,29 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, shell } = require('electron');
 const path = require('path');
 const { setupIPC } = require('./ipc-handlers');
 const autoUpdater = require('../launcher/auto-updater');
+const { exec } = require('child_process');
 
 let mainWindow;
 let remoteMain;
+
+// Kontrola admin práv na Windows
+if (process.platform === 'win32') {
+  exec('net session', (error) => {
+    if (error) {
+      console.log('[ADMIN] Aplikace neběží jako admin, restartuji...');
+      const { spawn } = require('child_process');
+      const args = process.argv.slice(1);
+      spawn('powershell', ['-Command', 'Start-Process', `"${process.execPath}"`, '-Verb', 'RunAs'], {
+        detached: true,
+        stdio: 'ignore'
+      }).unref();
+      app.quit();
+    } else {
+      console.log('[ADMIN] Aplikace běží s admin právy ✓');
+    }
+  });
+}
 
 function createWindow() {
   mainWindow = new BrowserWindow({
