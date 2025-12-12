@@ -39,11 +39,11 @@ async function loadModpackInfo() {
         console.log('[LAUNCHER] Modpack načten:', modpack.name);
         const latestFile = await curseforge.getLatestFile(selectedModpack);
         console.log('[LAUNCHER] Nejnovější soubor:', latestFile.displayName || latestFile.fileName);
-        
+
         const modpackItem = document.querySelector('.modpack-item');
         if (modpackItem) {
             modpackItem.querySelector('.modpack-name').textContent = modpack.name;
-            modpackItem.querySelector('.modpack-version').textContent = 
+            modpackItem.querySelector('.modpack-version').textContent =
                 `v${latestFile.displayName || latestFile.fileName}`;
         }
     } catch (error) {
@@ -57,20 +57,27 @@ async function loadModpackInfo() {
 
 // Event listenery
 function setupEventListeners() {
-    document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+    const logoutBtn = document.getElementById('logoutBtn');
+    console.log('[LAUNCHER] logoutBtn element:', logoutBtn);
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', handleLogout);
+        console.log('[LAUNCHER] Event listener pro logoutBtn zaregistrován');
+    } else {
+        console.error('[LAUNCHER] CHYBA: logoutBtn element nebyl nalezen!');
+    }
     document.getElementById('launchBtn').addEventListener('click', handleLaunch);
     document.getElementById('settingsBtn').addEventListener('click', openSettings);
     document.getElementById('diagnosticsBtn').addEventListener('click', runDiagnostics);
     document.getElementById('checkUpdateBtn').addEventListener('click', checkForUpdates);
-    
+
     // Titlebar buttons
     const { getCurrentWindow } = require('@electron/remote');
     const win = getCurrentWindow();
-    
+
     document.getElementById('minimizeBtn').addEventListener('click', () => {
         win.minimize();
     });
-    
+
     document.getElementById('maximizeBtn').addEventListener('click', () => {
         if (win.isMaximized()) {
             win.unmaximize();
@@ -78,22 +85,22 @@ function setupEventListeners() {
             win.maximize();
         }
     });
-    
+
     document.getElementById('closeBtn').addEventListener('click', () => {
         win.close();
     });
-    
+
     document.querySelectorAll('.modpack-item').forEach(item => {
         item.addEventListener('click', (e) => {
             // Ignorovat klik na tlačítko stažení
             if (e.target.classList.contains('btn-download-modpack')) return;
-            
+
             document.querySelectorAll('.modpack-item').forEach(i => i.classList.remove('active'));
             item.classList.add('active');
             selectedModpack = item.dataset.id;
         });
     });
-    
+
     // Přidat event listenery pro tlačítka stažení
     document.querySelectorAll('.btn-download-modpack').forEach(btn => {
         btn.addEventListener('click', (e) => {
@@ -121,12 +128,19 @@ function openSettings() {
 
 // Odhlášení
 function handleLogout() {
+    console.log('[LAUNCHER] handleLogout byl zavolán');
     if (confirm('Opravdu se chcete odhlásit?')) {
+        console.log('[LAUNCHER] Uživatel potvrdil odhlášení');
         const configPath = path.join(os.homedir(), '.void-craft-launcher', 'account.json');
+        console.log('[LAUNCHER] Config path:', configPath);
         if (fs.existsSync(configPath)) {
             fs.unlinkSync(configPath);
+            console.log('[LAUNCHER] Account.json smazán');
         }
+        console.log('[LAUNCHER] Přesměrovávám na login.html');
         window.location.href = 'login.html';
+    } else {
+        console.log('[LAUNCHER] Uživatel zrušil odhlášení');
     }
 }
 
@@ -136,7 +150,7 @@ async function handleLaunch() {
         alert('Nejdřív se přihlas!');
         return;
     }
-    
+
     // Pokud Minecraft běží, ukončit ho
     const isRunning = await minecraftLauncher.isRunning();
     if (isRunning) {
@@ -168,7 +182,7 @@ async function handleLaunch() {
 
     const launchBtn = document.getElementById('launchBtn');
     const progressBar = document.getElementById('progressBar');
-    
+
     launchBtn.disabled = true;
     progressBar.style.display = 'block';
 
@@ -227,12 +241,12 @@ async function handleLaunch() {
             else displayText = '⚙️ ' + displayText;
             updateProgress(50 + Math.round(progress * 0.5), displayText);
         }, ramAllocation);
-        
+
         updateProgress(100, 'Hra spuštěna!');
         setTimeout(() => {
             progressBar.style.display = 'none';
         }, 2000);
-        
+
         // Počkat chvíli než se proces spustí
         setTimeout(async () => {
             const running = await minecraftLauncher.isRunning();
@@ -240,7 +254,7 @@ async function handleLaunch() {
                 launchBtn.textContent = 'Ukončit hru';
             }
         }, 3000);
-        
+
         // Kontrolovat stav každých 3 sekundy
         const checkInterval = setInterval(async () => {
             const running = await minecraftLauncher.isRunning();
@@ -251,7 +265,7 @@ async function handleLaunch() {
                 clearInterval(checkInterval);
             }
         }, 3000);
-        
+
     } catch (error) {
         console.error('[LAUNCHER] ========== CHYBA ==========');
         console.error('[LAUNCHER] Chyba při spouštění:', error);
@@ -277,8 +291,8 @@ function updateProgress(percent, text) {
 function generateOfflineUUID(username) {
     const crypto = require('crypto');
     const hash = crypto.createHash('md5').update('OfflinePlayer:' + username).digest('hex');
-    return hash.substring(0, 8) + '-' + hash.substring(8, 12) + '-' + 
-           hash.substring(12, 16) + '-' + hash.substring(16, 20) + '-' + hash.substring(20, 32);
+    return hash.substring(0, 8) + '-' + hash.substring(8, 12) + '-' +
+        hash.substring(12, 16) + '-' + hash.substring(16, 20) + '-' + hash.substring(20, 32);
 }
 
 function saveAccount(account) {
@@ -297,7 +311,7 @@ function loadSavedAccount() {
         const configPath = path.join(os.homedir(), '.void-craft-launcher', 'account.json');
         if (fs.existsSync(configPath)) {
             currentUser = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-            
+
             // Opravit UUID formát pro staré účty (přidat pomlčky)
             if (currentUser.uuid && !currentUser.uuid.includes('-')) {
                 console.log('[LAUNCHER] Opravuji UUID formát...');
@@ -306,7 +320,7 @@ function loadSavedAccount() {
                 saveAccount(currentUser);
                 console.log('[LAUNCHER] UUID opraveno:', currentUser.uuid);
             }
-            
+
             document.getElementById('currentUsername').textContent = currentUser.username;
             loadSkinDisplay(currentUser);
         } else {
@@ -322,22 +336,22 @@ function loadSavedAccount() {
 async function runDiagnostics() {
     const btn = document.getElementById('diagnosticsBtn');
     const progressBar = document.getElementById('progressBar');
-    
+
     btn.disabled = true;
     btn.textContent = '⏳ Testuji...';
     progressBar.style.display = 'block';
-    
+
     try {
         const diagnostics = require('../launcher/diagnostics');
         const results = await diagnostics.runFullDiagnostics(selectedModpack, (text) => {
             updateProgress(50, text);
         });
-        
+
         updateProgress(100, 'Test dokončen!');
-        
+
         let message = '🔍 Diagnostický test dokončen:\n\n';
         let hasError = false;
-        
+
         for (const [key, result] of Object.entries(results)) {
             let icon = '✅';
             if (result.status === 'error') {
@@ -346,20 +360,20 @@ async function runDiagnostics() {
             } else if (result.status === 'warning') {
                 icon = '⚠️';
             }
-            
+
             if (result.autoFixed) {
                 icon = '🔧';
             }
-            
+
             message += `${icon} ${key.toUpperCase()}: ${result.message}\n`;
         }
-        
+
         if (hasError) {
             message += '\n\n⚠️ Byly nalezeny problémy. Zkuste spustit hru znovu.';
         }
-        
+
         alert(message);
-        
+
         setTimeout(() => {
             progressBar.style.display = 'none';
         }, 2000);
@@ -376,20 +390,20 @@ async function runDiagnostics() {
 async function handleDownloadModpack(modpackId) {
     const btn = document.querySelector(`.btn-download-modpack[data-id="${modpackId}"]`);
     const progressBar = document.getElementById('progressBar');
-    
+
     if (modpackInstaller.isModpackInstalled(modpackId)) {
         alert('✅ Modpack je již stažen!');
         return;
     }
-    
+
     btn.disabled = true;
     btn.textContent = '⏳';
     progressBar.style.display = 'block';
-    
+
     try {
         console.log('[LAUNCHER] Stahuji modpack ID:', modpackId);
         updateProgress(0, '🔍 Načítám informace o modpacku...');
-        
+
         const manifest = await modpackInstaller.installModpack(modpackId, (progress, text) => {
             console.log(`[LAUNCHER] Instalace: ${progress}% - ${text}`);
             let displayText = text;
@@ -400,13 +414,13 @@ async function handleDownloadModpack(modpackId) {
             else if (text.includes('Hotovo') || text.includes('dokončena')) displayText = '✅ ' + text;
             updateProgress(progress, displayText);
         });
-        
+
         modpackInstaller.markAsInstalled(modpackId, manifest);
         console.log('[LAUNCHER] Modpack úspěšně stažen');
-        
+
         updateProgress(100, '✅ Modpack stažen!');
         alert('✅ Modpack byl úspěšně stažen!\n\nNyní můžeš spustit hru.');
-        
+
         setTimeout(() => {
             progressBar.style.display = 'none';
         }, 2000);
@@ -437,39 +451,62 @@ function checkForUpdates() {
 function loadSkinDisplay(user) {
     const canvas = document.getElementById('skinViewer');
     const ctx = canvas.getContext('2d');
-    
-    // Načíst skin z Crafatar (3D render) s timestamp pro vynučení refresh
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
+
+    // UUID bez pomlček pro některé API
+    const uuidClean = user.uuid ? user.uuid.replace(/-/g, '') : '';
     const timestamp = Date.now();
-    img.src = `https://crafatar.com/renders/body/${user.uuid}?overlay&t=${timestamp}`;
-    
-    let rotation = 0;
-    let skinLoaded = false;
-    
-    img.onload = () => {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        const maxHeight = canvas.height - 20;
-        const maxWidth = canvas.width - 20;
-        const scaleHeight = maxHeight / img.height;
-        const scaleWidth = maxWidth / img.width;
-        const scale = Math.min(scaleHeight, scaleWidth);
-        const imgWidth = img.width * scale;
-        const imgHeight = img.height * scale;
-        const x = (canvas.width - imgWidth) / 2;
-        const y = (canvas.height - imgHeight) / 2;
-        
-        ctx.drawImage(img, x, y, imgWidth, imgHeight);
-        console.log('[LAUNCHER] Skin načten pro:', user.username);
-    };
-    
-    img.onerror = () => {
-        console.warn('[LAUNCHER] Nepodařilo se načíst skin, používám výchozí');
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = '#a78bfa';
-        ctx.font = '48px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText('👤', canvas.width / 2, canvas.height / 2 + 15);
-    };
+
+    // Seznam skin API s fallbacky (pokud jedno nefunguje, zkusí další)
+    const skinApis = [
+        `https://mc-heads.net/body/${uuidClean}/100`,
+        `https://visage.surgeplay.com/bust/100/${uuidClean}`,
+        `https://crafatar.com/renders/body/${user.uuid}?overlay&t=${timestamp}`,
+        `https://minotar.net/armor/body/${user.username}/100.png`
+    ];
+
+    let currentApiIndex = 0;
+
+    function tryLoadSkin() {
+        if (currentApiIndex >= skinApis.length) {
+            // Všechny API selhaly, zobrazit výchozí ikonu
+            console.warn('[LAUNCHER] Nepodařilo se načíst skin ze žádného API, používám výchozí');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#a78bfa';
+            ctx.font = '48px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('👤', canvas.width / 2, canvas.height / 2 + 15);
+            return;
+        }
+
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.src = skinApis[currentApiIndex];
+
+        console.log(`[LAUNCHER] Zkouším načíst skin z: ${skinApis[currentApiIndex]}`);
+
+        img.onload = () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const maxHeight = canvas.height - 10;
+            const maxWidth = canvas.width - 10;
+            const scaleHeight = maxHeight / img.height;
+            const scaleWidth = maxWidth / img.width;
+            const scale = Math.min(scaleHeight, scaleWidth);
+            const imgWidth = img.width * scale;
+            const imgHeight = img.height * scale;
+            const x = (canvas.width - imgWidth) / 2;
+            const y = (canvas.height - imgHeight) / 2;
+
+            ctx.drawImage(img, x, y, imgWidth, imgHeight);
+            console.log('[LAUNCHER] Skin načten pro:', user.username);
+        };
+
+        img.onerror = () => {
+            console.warn(`[LAUNCHER] Skin API #${currentApiIndex + 1} selhalo, zkouším další...`);
+            currentApiIndex++;
+            tryLoadSkin();
+        };
+    }
+
+    tryLoadSkin();
 }
