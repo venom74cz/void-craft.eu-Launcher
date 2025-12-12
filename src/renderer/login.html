@@ -1,92 +1,17 @@
 <!DOCTYPE html>
 <html lang="cs">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Přihlášení - Void-Craft Launcher</title>
     <link rel="stylesheet" href="style.css">
-    <style>
-        .login-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: calc(100vh - 32px);
-            background: linear-gradient(180deg, #1a1a2e 0%, #0f0f1e 100%);
-        }
-        .login-box {
-            background: #1f1f3a;
-            border: 2px solid #7c3aed;
-            border-radius: 12px;
-            padding: 40px;
-            max-width: 500px;
-            width: 90%;
-            text-align: center;
-        }
-        .login-logo h1 {
-            font-size: 36px;
-            color: #a78bfa;
-            text-shadow: 0 0 15px #7c3aed;
-            margin-bottom: 10px;
-        }
-        .login-logo p {
-            color: #9ca3af;
-            font-size: 14px;
-            letter-spacing: 2px;
-            margin-bottom: 40px;
-        }
-        .login-step {
-            display: none;
-        }
-        .login-step.active {
-            display: block;
-        }
-        .account-type-btn {
-            width: 100%;
-            padding: 20px;
-            margin: 10px 0;
-            background: linear-gradient(135deg, #7c3aed, #a78bfa);
-            border: none;
-            border-radius: 8px;
-            color: white;
-            font-size: 18px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        .account-type-btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(124, 58, 237, 0.6);
-        }
-        .warez-input {
-            width: 100%;
-            padding: 15px;
-            margin: 20px 0;
-            background: #0f0f1e;
-            border: 2px solid #7c3aed;
-            border-radius: 8px;
-            color: white;
-            font-size: 16px;
-        }
-        .warez-input:focus {
-            outline: none;
-            border-color: #a78bfa;
-            box-shadow: 0 0 15px rgba(124, 58, 237, 0.4);
-        }
-        .btn-back {
-            background: #4a4a6a;
-            margin-top: 10px;
-        }
-        .loading {
-            color: #a78bfa;
-            margin-top: 20px;
-        }
-    </style>
 </head>
+
 <body>
     <div class="titlebar">
         <div class="titlebar-drag">
-            <span class="titlebar-title">🌌 Void-Craft Launcher - Přihlášení</span>
+            <span class="titlebar-title">VOID-CRAFT LAUNCHER — PŘIHLÁŠENÍ</span>
         </div>
         <div class="titlebar-buttons">
             <button class="titlebar-button minimize" id="minimizeBtn">─</button>
@@ -98,12 +23,14 @@
         <div class="login-box">
             <div class="login-logo">
                 <h1>VOID-CRAFT</h1>
-                <p>Český Modovaný Minecraft Server</p>
+                <p>Český Modovaný Server</p>
             </div>
 
             <!-- Krok 1: Výběr typu účtu -->
             <div id="step1" class="login-step active">
-                <h2 style="color: #a78bfa; margin-bottom: 30px;">Vyberte typ účtu</h2>
+                <h2
+                    style="color: var(--void-200); margin-bottom: 28px; font-size: 16px; letter-spacing: 1px; text-transform: uppercase; font-weight: 500;">
+                    Vyberte typ účtu</h2>
                 <button class="account-type-btn" onclick="selectAccountType('original')">
                     🎮 Microsoft (Original)
                 </button>
@@ -114,8 +41,10 @@
 
             <!-- Krok 2: Microsoft přihlášení -->
             <div id="step2-microsoft" class="login-step">
-                <h2 style="color: #a78bfa; margin-bottom: 20px;">Microsoft přihlášení</h2>
-                <p style="color: #9ca3af; margin-bottom: 30px;">
+                <h2
+                    style="color: var(--void-200); margin-bottom: 16px; font-size: 16px; letter-spacing: 1px; text-transform: uppercase; font-weight: 500;">
+                    Microsoft přihlášení</h2>
+                <p style="color: var(--void-400); margin-bottom: 28px; font-size: 13px; line-height: 1.6;">
                     Klikněte na tlačítko níže pro přihlášení přes Microsoft účet
                 </p>
                 <button class="account-type-btn" onclick="loginMicrosoft()">
@@ -131,11 +60,14 @@
 
             <!-- Krok 2: Warez přihlášení -->
             <div id="step2-warez" class="login-step">
-                <h2 style="color: #a78bfa; margin-bottom: 20px;">Warez přihlášení</h2>
-                <p style="color: #9ca3af; margin-bottom: 20px;">
+                <h2
+                    style="color: var(--void-200); margin-bottom: 16px; font-size: 16px; letter-spacing: 1px; text-transform: uppercase; font-weight: 500;">
+                    Warez přihlášení</h2>
+                <p style="color: var(--void-400); margin-bottom: 20px; font-size: 13px; line-height: 1.6;">
                     Zadejte své Minecraft jméno
                 </p>
-                <input type="text" id="warezUsername" class="warez-input" placeholder="Minecraft username" maxlength="16">
+                <input type="text" id="warezUsername" class="warez-input" placeholder="Minecraft username"
+                    maxlength="16">
                 <button class="account-type-btn" onclick="loginWarez()">
                     Přihlásit se
                 </button>
@@ -148,4 +80,5 @@
 
     <script src="login.js"></script>
 </body>
+
 </html>

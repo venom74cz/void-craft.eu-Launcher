@@ -9,7 +9,7 @@
 <body>
     <div class="titlebar">
         <div class="titlebar-drag">
-            <span class="titlebar-title">🌌 Void-Craft Launcher</span>
+            <span class="titlebar-title">VOID-CRAFT LAUNCHER</span>
         </div>
         <div class="titlebar-buttons">
             <button class="titlebar-button minimize" id="minimizeBtn">─</button>
@@ -18,19 +18,19 @@
         </div>
     </div>
     <div class="container">
-        <!-- Sidebar (30%) -->
+        <!-- Sidebar -->
         <div class="sidebar">
             <div class="logo">
                 <h1>VOID-CRAFT</h1>
-                <p class="tagline">Český Modovaný Minecraft Server</p>
+                <p class="tagline">Český Modovaný Server</p>
                 <button id="settingsBtn" class="btn-settings" title="Nastavení">⚙️</button>
             </div>
 
             <div class="account-section">
                 <div id="userInfo" class="user-info-card">
-                    <canvas id="skinViewer" width="80" height="100"></canvas>
+                    <canvas id="skinViewer" width="70" height="90"></canvas>
                     <div class="user-details">
-                        <div style="color: #a78bfa; font-size: 12px; margin-bottom: 5px;">Přihlášen jako:</div>
+                        <div style="color: var(--void-400); font-size: 11px; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px;">Přihlášen jako</div>
                         <div id="currentUsername" class="username-display">Loading...</div>
                         <button id="logoutBtn" class="btn-logout">Odhlásit se</button>
                     </div>
@@ -56,14 +56,14 @@
                     <div class="progress-fill"></div>
                     <span class="progress-text">0%</span>
                 </div>
-                <button id="launchBtn" class="btn-launch">SPUSTIT HRU</button>
+                <button id="launchBtn" class="btn-launch">Spustit Hru</button>
                 <button id="diagnosticsBtn" class="btn-diagnostics">🔍 Test spuštění</button>
                 <button id="checkUpdateBtn" class="btn-check-update">Zkontrolovat aktualizace</button>
-                <div id="versionInfo" style="margin-top: 10px; text-align: center; font-size: 11px; color: #666;">Načítám...</div>
+                <div id="versionInfo" style="margin-top: 12px; text-align: center; font-size: 10px; color: var(--void-400); letter-spacing: 0.5px;">Načítám...</div>
             </div>
         </div>
 
-        <!-- Main content (70%) -->
+        <!-- Main content -->
         <div class="main-content">
             <webview id="webview" src="https://void-craft.eu" class="webview"></webview>
         </div>
