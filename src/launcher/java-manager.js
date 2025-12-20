@@ -216,35 +216,57 @@ class JavaManager {
             console.log(`Stahuji Java 21 (Adoptium) pro ${platform}...`);
             if (progressCallback) progressCallback(`Stahuji Java 21 (Adoptium) pro ${platform}...`);
 
-            const response = await axios({
-                method: 'GET',
-                url: javaUrl,
-                responseType: 'stream',
-                timeout: 0, // Vypnout timeout pro pomalá připojení
-                maxRedirects: 5
-            });
-
-            const totalLength = parseInt(response.headers['content-length'], 10);
-            let downloadedLength = 0;
-
-            if (progressCallback && !isNaN(totalLength)) {
-                response.data.on('data', (chunk) => {
-                    downloadedLength += chunk.length;
-                    const percent = Math.round((downloadedLength / totalLength) * 100);
-                    progressCallback(`Stahuji Javu: ${percent}%`);
-                });
-            } else if (progressCallback) {
-                progressCallback('Stahuji Javu (velikost neznámá)...');
-            }
-
-            console.log('Ukládám Javu (stream)...');
-            const writer = fs.createWriteStream(archivePath);
-            response.data.pipe(writer);
+            // POUŽITÍ NATIVNÍHO HTTPS MODULU (bez Axios) pro spolehlivý stream v Electronu
+            const https = require('https');
 
             await new Promise((resolve, reject) => {
-                writer.on('finish', resolve);
-                writer.on('error', reject);
-                response.data.on('error', reject);
+                const makeRequest = (url) => {
+                    https.get(url, (response) => {
+                        // Handle Redirects (301, 302)
+                        if (response.statusCode === 301 || response.statusCode === 302) {
+                            if (response.headers.location) {
+                                console.log('[JAVA] Redirect na:', response.headers.location);
+                                makeRequest(response.headers.location);
+                                return;
+                            }
+                        }
+
+                        if (response.statusCode !== 200) {
+                            reject(new Error(`Server vrátil chybu: ${response.statusCode}`));
+                            return;
+                        }
+
+                        const totalLength = parseInt(response.headers['content-length'], 10);
+                        let downloadedLength = 0;
+
+                        if (progressCallback && !isNaN(totalLength)) {
+                            response.on('data', (chunk) => {
+                                downloadedLength += chunk.length;
+                                const percent = Math.round((downloadedLength / totalLength) * 100);
+                                progressCallback(`Stahuji Javu: ${percent}%`);
+                            });
+                        } else if (progressCallback) {
+                            progressCallback('Stahuji Javu...');
+                        }
+
+                        console.log('Ukládám Javu (stream)...');
+                        const writer = fs.createWriteStream(archivePath);
+                        response.pipe(writer);
+
+                        writer.on('finish', () => {
+                            writer.close();
+                            resolve();
+                        });
+
+                        writer.on('error', (err) => {
+                            fs.unlink(archivePath, () => { });
+                            reject(err);
+                        });
+                    }).on('error', (err) => {
+                        reject(err);
+                    });
+                };
+                makeRequest(javaUrl);
             });
 
             console.log('Rozbaluji Javu...');
@@ -286,9 +308,8 @@ class JavaManager {
             if (fs.existsSync(archivePath)) {
                 try {
                     fs.unlinkSync(archivePath);
-                    console.log('[JAVA] Poškozený archiv smazán');
                 } catch (e) {
-                    console.error('[JAVA] Nelze smazat poškozený archiv:', e);
+                    // ignore
                 }
             }
 
@@ -296,15 +317,7 @@ class JavaManager {
             crashReporter.reportCrash(error, 'Stahování Java 21');
 
             let errorMsg = 'Nepodařilo se stáhnout Javu automaticky.\n\n';
-
-            if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
-                errorMsg += 'Důvod: Vypršel časový limit připojení (zkontrolujte internet).\n';
-            } else if (error.code === 'ENOTFOUND') {
-                errorMsg += 'Důvod: Nelze se připojit k serveru.\n';
-            } else {
-                errorMsg += `Důvod: ${error.message}\n`;
-            }
-
+            errorMsg += `Důvod: ${error.message}\n`;
             errorMsg += '\nStáhni a nainstaluj Java 21 manuálně:\n';
             errorMsg += 'https://adoptium.net/temurin/releases/?version=21\n';
             errorMsg += 'Nebo nastav cestu k existující Javě v Nastavení.';
