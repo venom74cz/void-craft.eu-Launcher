@@ -222,13 +222,11 @@ class JavaManager {
             await new Promise((resolve, reject) => {
                 const makeRequest = (url) => {
                     https.get(url, (response) => {
-                        // Handle Redirects (301, 302)
-                        if (response.statusCode === 301 || response.statusCode === 302) {
-                            if (response.headers.location) {
-                                console.log('[JAVA] Redirect na:', response.headers.location);
-                                makeRequest(response.headers.location);
-                                return;
-                            }
+                        // Handle Redirects (301, 302, 303, 307, 308)
+                        if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
+                            console.log('[JAVA] Redirect (' + response.statusCode + ') na:', response.headers.location);
+                            makeRequest(response.headers.location);
+                            return;
                         }
 
                         if (response.statusCode !== 200) {

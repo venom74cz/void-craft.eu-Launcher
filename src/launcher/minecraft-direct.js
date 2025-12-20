@@ -142,7 +142,7 @@ class MinecraftDirect {
                             const replaced = val
                                 .replace(/\$\{natives_directory\}/g, path.join(this.gameDir, 'natives', versionName))
                                 .replace(/\$\{launcher_name\}/g, 'void-craft-launcher')
-                                .replace(/\$\{launcher_version\}/g, '2.2.2')
+                                .replace(/\$\{launcher_version\}/g, '2.2.3')
                                 .replace(/\$\{classpath\}/g, classpath) // POUŽÍT SKUTEČNÝ CLASSPATH
                                 .replace(/\$\{classpath_separator\}/g, path.delimiter)
                                 .replace(/\$\{library_directory\}/g, path.join(this.gameDir, 'libraries'))
@@ -172,7 +172,6 @@ class MinecraftDirect {
                 '-XX:-DontCompileHugeMethods',
                 '-XX:MaxNodeLimit=240000',
                 '-XX:NodeLimitFudgeFactor=8000',
-                '-XX:+UseVectorCmov',
                 '-XX:+PerfDisableSharedMem',
                 '-XX:+UseFastUnorderedTimeStamps',
                 '-XX:+UseCriticalJavaThreadPriority',
@@ -188,9 +187,7 @@ class MinecraftDirect {
                 '-XX:G1HeapWastePercent=20',
                 '-XX:InitiatingHeapOccupancyPercent=10',
                 '-XX:G1RSetUpdatingPauseTimePercent=0',
-                '-XX:MaxTenuringThreshold=1',
-                '-XX:+UseLargePages',
-                '-XX:LargePageSizeInBytes=2m'
+                '-XX:MaxTenuringThreshold=1'
             ];
 
             for (const flag of extraJvmFlags) {
@@ -377,7 +374,7 @@ class MinecraftDirect {
             '${classpath_separator}': path.delimiter,
             '${natives_directory}': path.join(this.gameDir, 'natives', versionName),
             '${launcher_name}': 'void-craft-launcher',
-            '${launcher_version}': '2.2.2',
+            '${launcher_version}': '2.2.3',
             '${clientid}': 'void-craft',
             '${user_properties}': '{}'
         };
