@@ -1,6 +1,6 @@
 {
   "name": "void-craft-launcher",
-  "version": "2.2.3",
+  "version": "2.2.4",
   "description": "Minecraft launcher pro void-craft.eu server",
   "main": "src/main/main.js",
   "scripts": {
@@ -39,12 +39,6 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "artifactName": "Void-Craft-Launcher-Setup.exe"
-    },
-    "linux": {
-      "target": "AppImage",
-      "icon": "assets/VOID-CRAFT.png",
-      "category": "Game",
-      "artifactName": "Void-Craft-Launcher.AppImage"
     },
     "publish": [
       {

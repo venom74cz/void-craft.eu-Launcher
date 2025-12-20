@@ -1,17 +1,15 @@
 <!DOCTYPE html>
 <html lang="cs">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Void-Craft Launcher</title>
     <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
     <div class="titlebar">
         <div class="titlebar-drag">
-            <span class="titlebar-title">VOID-CRAFT LAUNCHER</span>
+            <span class="titlebar-title">🌌 Void-Craft Launcher</span>
         </div>
         <div class="titlebar-buttons">
             <button class="titlebar-button minimize" id="minimizeBtn">─</button>
@@ -20,21 +18,19 @@
         </div>
     </div>
     <div class="container">
-        <!-- Sidebar -->
+        <!-- Sidebar (30%) -->
         <div class="sidebar">
             <div class="logo">
                 <h1>VOID-CRAFT</h1>
-                <p class="tagline">Český Modovaný Server</p>
+                <p class="tagline">Český Modovaný Minecraft Server</p>
                 <button id="settingsBtn" class="btn-settings" title="Nastavení">⚙️</button>
             </div>
 
             <div class="account-section">
                 <div id="userInfo" class="user-info-card">
-                    <canvas id="skinViewer" width="70" height="90"></canvas>
+                    <canvas id="skinViewer" width="80" height="100"></canvas>
                     <div class="user-details">
-                        <div
-                            style="color: var(--void-400); font-size: 11px; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px;">
-                            Přihlášen jako</div>
+                        <div style="color: #a78bfa; font-size: 12px; margin-bottom: 5px;">Přihlášen jako:</div>
                         <div id="currentUsername" class="username-display">Loading...</div>
                         <button id="logoutBtn" class="btn-logout">Odhlásit se</button>
                     </div>
@@ -50,7 +46,7 @@
                             <div class="modpack-name">Void Modpack</div>
                             <div class="modpack-version">Načítání...</div>
                         </div>
-                        <button class="btn-modpack-settings" data-id="1402056" title="Nastavení modpacku">⚙️</button>
+                        <button class="btn-download-modpack" data-id="1402056" title="Stáhnout modpack">⬇️</button>
                     </div>
                 </div>
             </div>
@@ -60,116 +56,19 @@
                     <div class="progress-fill"></div>
                     <span class="progress-text">0%</span>
                 </div>
-                <button id="launchBtn" class="btn-launch">Spustit Hru</button>
+                <button id="launchBtn" class="btn-launch">SPUSTIT HRU</button>
                 <button id="diagnosticsBtn" class="btn-diagnostics">🔍 Test spuštění</button>
                 <button id="checkUpdateBtn" class="btn-check-update">Zkontrolovat aktualizace</button>
-                <div id="versionInfo"
-                    style="margin-top: 12px; text-align: center; font-size: 10px; color: var(--void-400); letter-spacing: 0.5px;">
-                    Načítám...</div>
+                <div id="versionInfo" style="margin-top: 10px; text-align: center; font-size: 11px; color: #666;">Načítám...</div>
             </div>
         </div>
 
-        <!-- Main content -->
+        <!-- Main content (70%) -->
         <div class="main-content">
             <webview id="webview" src="https://void-craft.eu" class="webview"></webview>
         </div>
     </div>
 
-    <!-- Toast Notifications Container -->
-    <div id="toastContainer" class="toast-container"></div>
-
-    <!-- Settings Modal -->
-    <div id="settingsModal" class="modal-overlay" style="display: none;">
-        <div class="modal-content settings-modal">
-            <div class="modal-header">
-                <h2 class="gradient-text">⚙️ Nastavení</h2>
-                <button class="modal-close" id="settingsModalClose">✕</button>
-            </div>
-            <div class="modal-body">
-                <div class="setting-group">
-                    <h3>🎮 Herní nastavení</h3>
-                    <div class="setting-item">
-                        <label>Alokovaná RAM (GB)</label>
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <input type="range" id="ramSlider" min="2" max="16" step="0.5" value="4" style="flex:2;">
-                            <input type="number" id="ramInput" min="2" max="16" step="0.5" value="4"
-                                style="width:70px;flex:0 0 auto;">
-                            <span id="ramMaxInfo"
-                                style="font-size: 11px; color: var(--void-400); white-space: nowrap;"></span>
-                        </div>
-                    </div>
-                    <div class="setting-item">
-                        <label>Rozlišení okna</label>
-                        <select id="resolution">
-                            <option value="854x480">854x480</option>
-                            <option value="1280x720">1280x720</option>
-                            <option value="1920x1080" selected>1920x1080</option>
-                            <option value="2560x1440">2560x1440</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="setting-group">
-                    <h3>☕ Java nastavení</h3>
-                    <div class="setting-item">
-                        <label>Cesta k Java (nechej prázdné pro automatickou detekci)</label>
-                        <input type="text" id="javaPath"
-                            placeholder="/usr/lib/jvm/java-21/bin/java nebo C:\Program Files\Java\...">
-                    </div>
-                </div>
-
-                <div class="setting-group">
-                    <h3> Složky</h3>
-                    <div class="setting-item">
-                        <label>Minecraft složka</label>
-                        <input type="text" id="minecraftDir">
-                    </div>
-                    <div class="setting-item">
-                        <label>Logy</label>
-                        <input type="text" id="logsDir" readonly style="color: var(--void-400); cursor: not-allowed;">
-                    </div>
-                </div>
-
-                <button class="btn-save" id="saveSettingsBtn">💾 Uložit nastavení</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Mod Management Modal -->
-    <div id="modSettingsModal" class="modal-overlay" style="display: none;">
-        <div class="modal-content mod-settings-modal">
-            <div class="modal-header">
-                <h2 class="gradient-text">🔧 Správa Modů</h2>
-                <button class="modal-close" id="modSettingsModalClose">✕</button>
-            </div>
-            <div class="mod-search-container">
-                <input type="text" id="modSearchInput" class="mod-search-input" placeholder="🔍 Vyhledat mod...">
-            </div>
-            <div class="modal-body mod-list-container">
-                <div id="modList" class="mod-list">
-                    <!-- Mods will be loaded here -->
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Confirmation Modal -->
-    <div id="confirmModal" class="modal-overlay" style="display: none;">
-        <div class="modal-content confirm-modal">
-            <div class="modal-header">
-                <h2 class="gradient-text" id="confirmTitle">Potvrzení</h2>
-            </div>
-            <div class="modal-body">
-                <p id="confirmMessage" class="confirm-message"></p>
-                <div class="confirm-buttons">
-                    <button class="btn-confirm-yes" id="confirmYes">Ano</button>
-                    <button class="btn-confirm-no" id="confirmNo">Ne</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <script src="renderer.js"></script>
 </body>
-
 </html>

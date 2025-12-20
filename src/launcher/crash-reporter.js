@@ -5,29 +5,7 @@ const path = require('path');
 
 class CrashReporter {
     constructor() {
-        this._e = null;
-    }
-
-    _d(s) { return Buffer.from(s, 'base64').toString('utf8'); }
-    _x(s, k) { return s.split('').map((c, i) => String.fromCharCode(c.charCodeAt(0) ^ k.charCodeAt(i % k.length))).join(''); }
-    _r(s) { return s.split('').reverse().join(''); }
-
-    _getEndpoint() {
-        if (this._e) return this._e;
-        const _p1 = 'aHR0cHM6Ly9kaXNjb3JkLmNvbS9hcGk=';
-        const _p2 = 'L3dlYmhvb2tzLw==';
-        const _p3 = 'MTQ0OTEyMzcwOTAwMzYzMjc5MQ==';
-        const _p4 = 'WWYzYkhQV3ZMc2hDbzFIN0tDVjNkVFpwTTBETkpvT1BnRkc2N0NSWXVXTEtGVE1rVTVRMzk0LXl1U00tN2RJbjVCV1o=';
-        const _a = this._d(_p1);
-        const _b = this._d(_p2);
-        const _c = this._d(_p3);
-        const _t = this._d(_p4);
-        this._e = _a + _b + _c + '/' + _t;
-        return this._e;
-    }
-
-    get webhookUrl() {
-        return this._getEndpoint();
+        this.webhookUrl = 'https://discord.com/api/webhooks/1432703648428720219/uGexSbrMx-R_IR31DlZKeVwaYw4VHJDl0Lh9pd3UChs-4o8vgKOOli5wzROzG3SXXWbR';
     }
 
     async reportCrash(error, context = '') {
@@ -52,7 +30,7 @@ class CrashReporter {
                     const account = JSON.parse(fs.readFileSync(accountPath, 'utf8'));
                     crashData.user = account.username;
                 }
-            } catch (e) { }
+            } catch (e) {}
 
             const embed = {
                 title: '🔴 Launcher Crash Report',
@@ -94,7 +72,7 @@ class CrashReporter {
                     { name: '💻 Systém', value: `${os.platform()} ${os.arch()}`, inline: true },
                     { name: '🕐 Čas', value: new Date().toLocaleString('cs-CZ'), inline: true }
                 ],
-                footer: { text: 'Void-Craft Launcher v2.0.0' }
+                footer: { text: 'Void-Craft Launcher v0.2.2' }
             };
 
             await axios.post(this.webhookUrl, { embeds: [embed] });

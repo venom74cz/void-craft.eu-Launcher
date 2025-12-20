@@ -5,7 +5,7 @@ class AutoUpdater {
 
     setupAutoUpdater() {
         const { app, dialog } = require('electron');
-
+        
         if (!app || !app.isReady()) {
             return;
         }
@@ -17,28 +17,19 @@ class AutoUpdater {
             console.log('Auto-updater není dostupný:', error.message);
             return;
         }
-
+        
         // GitHub Releases
         this.autoUpdater.setFeedURL({
             provider: 'github',
             owner: 'venom74cz',
             repo: 'void-craft.eu-Launcher'
         });
-
+        
         // Konfigurace auto-updater
-        this.autoUpdater.logger = console;
         this.autoUpdater.autoDownload = false;
         this.autoUpdater.autoInstallOnAppQuit = true;
 
         // Event listenery
-        this.autoUpdater.on('checking-for-update', () => {
-            console.log('[AUTO-UPDATER] Kontroluji aktualizace...');
-        });
-
-        this.autoUpdater.on('update-not-available', (info) => {
-            console.log(`[AUTO-UPDATER] Žádná aktualizace není k dispozici (current: ${info.version}).`);
-        });
-
         this.autoUpdater.on('update-available', (info) => {
             const { dialog } = require('electron');
             dialog.showMessageBox({
@@ -76,9 +67,8 @@ class AutoUpdater {
 
     checkForUpdates() {
         if (this.autoUpdater) {
-            return this.autoUpdater.checkForUpdates();
+            this.autoUpdater.checkForUpdates();
         }
-        return null;
     }
 }
 

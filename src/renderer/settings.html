@@ -1,17 +1,69 @@
 <!DOCTYPE html>
 <html lang="cs">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nastavení - Void-Craft Launcher</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        .settings-container {
+            padding: 20px;
+            color: white;
+            height: calc(100vh - 32px);
+            overflow-y: auto;
+        }
+        .setting-group {
+            background: #1f1f3a;
+            border: 1px solid #7c3aed;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .setting-group h3 {
+            color: #a78bfa;
+            margin-bottom: 15px;
+        }
+        .setting-item {
+            margin-bottom: 12px;
+        }
+        .setting-item label {
+            display: block;
+            margin-bottom: 5px;
+            color: #9ca3af;
+        }
+        .setting-item input,
+        .setting-item select {
+            width: 100%;
+            padding: 8px;
+            background: #0f0f1e;
+            border: 1px solid #7c3aed;
+            border-radius: 6px;
+            color: white;
+            font-size: 14px;
+        }
+        .btn-save {
+            width: 100%;
+            padding: 10px;
+            background: linear-gradient(135deg, #7c3aed, #a78bfa);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .btn-save:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(124, 58, 237, 0.6);
+        }
+    </style>
 </head>
-
-<body>
+<body style="background: #0a0a0a;">
     <div class="titlebar">
         <div class="titlebar-drag">
-            <span class="titlebar-title">VOID-CRAFT LAUNCHER — NASTAVENÍ</span>
+            <span class="titlebar-title">⚙️ Void-Craft Launcher - Nastavení</span>
         </div>
         <div class="titlebar-buttons">
             <button class="titlebar-button minimize" id="minimizeBtn">─</button>
@@ -20,18 +72,16 @@
         </div>
     </div>
     <div class="settings-container">
-        <h1 style="font-size: 20px; margin-bottom: 24px; letter-spacing: 2px; text-transform: uppercase; font-weight: 600;"
-            class="gradient-text">⚙️ Nastavení</h1>
+        <h1 style="color: #a78bfa; margin-bottom: 20px; font-size: 24px;">⚙️ Nastavení</h1>
 
         <div class="setting-group">
-            <h3>🎮 Herní nastavení</h3>
+            <h3 style="font-size: 16px;">🎮 Herní nastavení</h3>
             <div class="setting-item">
                 <label>Alokovaná RAM (GB)</label>
-                <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
                     <input type="range" id="ramSlider" min="2" max="16" step="0.5" value="4" style="flex:2;">
-                    <input type="number" id="ramInput" min="2" max="16" step="0.5" value="4"
-                        style="width:70px;flex:0 0 auto;">
-                    <span id="ramMaxInfo" style="font-size: 11px; color: var(--void-400); white-space: nowrap;"></span>
+                    <input type="number" id="ramInput" min="2" max="16" step="0.5" value="4" style="width:60px;flex:1;">
+                    <span id="ramMaxInfo" style="margin-left:8px;font-size:12px;color:#a78bfa;"></span>
                 </div>
             </div>
             <div class="setting-item">
@@ -46,7 +96,7 @@
         </div>
 
         <div class="setting-group">
-            <h3>☕ Java nastavení</h3>
+            <h3 style="font-size: 16px;">☕ Java nastavení</h3>
             <div class="setting-item">
                 <label>Cesta k Java (nechej prázdné pro automatickou detekci)</label>
                 <input type="text" id="javaPath" placeholder="C:\Program Files\Java\...">
@@ -54,21 +104,19 @@
         </div>
 
         <div class="setting-group">
-            <h3>📁 Složky</h3>
+            <h3 style="font-size: 16px;">📁 Složky</h3>
             <div class="setting-item">
                 <label>Minecraft složka</label>
-                <input type="text" id="minecraftDir" readonly style="color: var(--void-400); cursor: not-allowed;">
+                <input type="text" id="minecraftDir" readonly>
             </div>
             <div class="setting-item">
                 <label>Logy</label>
-                <input type="text" id="logsDir" readonly style="color: var(--void-400); cursor: not-allowed;">
+                <input type="text" id="logsDir" readonly>
             </div>
         </div>
 
         <button class="btn-save" onclick="saveSettings()">💾 Uložit nastavení</button>
-        <button class="btn-save"
-            style="background: var(--glass-bg); border: 1px solid var(--glass-border); color: var(--void-200); margin-top: 10px;"
-            onclick="window.close()">❌ Zavřít</button>
+        <button class="btn-save" style="background: #4a4a6a; margin-top: 8px;" onclick="window.close()">❌ Zavřít</button>
     </div>
 
     <script>
@@ -140,16 +188,16 @@
                 ramSlider.value = v;
             });
         });
-
+        
         // Titlebar buttons
         const { getCurrentWindow } = require('@electron/remote');
         const win = getCurrentWindow();
-
+        
         window.addEventListener('load', () => {
             document.getElementById('minimizeBtn').addEventListener('click', () => {
                 win.minimize();
             });
-
+            
             document.getElementById('maximizeBtn').addEventListener('click', () => {
                 if (win.isMaximized()) {
                     win.unmaximize();
@@ -157,12 +205,11 @@
                     win.maximize();
                 }
             });
-
+            
             document.getElementById('closeBtn').addEventListener('click', () => {
                 win.close();
             });
         });
     </script>
 </body>
-
 </html>
