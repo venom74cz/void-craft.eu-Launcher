@@ -219,19 +219,33 @@ class JavaManager {
             const response = await axios({
                 method: 'GET',
                 url: javaUrl,
-                responseType: 'arraybuffer',
-                timeout: 300000,
-                maxRedirects: 5,
-                onDownloadProgress: (progressEvent) => {
-                    if (progressCallback && progressEvent.total) {
-                        const percent = Math.round((progressEvent.loaded / progressEvent.total) * 100);
-                        progressCallback(`Stahuji Java: ${percent}%`);
-                    }
-                }
+                responseType: 'stream',
+                timeout: 0, // Vypnout timeout pro pomalá připojení
+                maxRedirects: 5
             });
 
-            console.log('Ukládám Javu...');
-            fs.writeFileSync(archivePath, Buffer.from(response.data));
+            const totalLength = parseInt(response.headers['content-length'], 10);
+            let downloadedLength = 0;
+
+            if (progressCallback && !isNaN(totalLength)) {
+                response.data.on('data', (chunk) => {
+                    downloadedLength += chunk.length;
+                    const percent = Math.round((downloadedLength / totalLength) * 100);
+                    progressCallback(`Stahuji Javu: ${percent}%`);
+                });
+            } else if (progressCallback) {
+                progressCallback('Stahuji Javu (velikost neznámá)...');
+            }
+
+            console.log('Ukládám Javu (stream)...');
+            const writer = fs.createWriteStream(archivePath);
+            response.data.pipe(writer);
+
+            await new Promise((resolve, reject) => {
+                writer.on('finish', resolve);
+                writer.on('error', reject);
+                response.data.on('error', reject);
+            });
 
             console.log('Rozbaluji Javu...');
             if (progressCallback) progressCallback('Rozbaluji Javu...');
@@ -284,17 +298,15 @@ class JavaManager {
             let errorMsg = 'Nepodařilo se stáhnout Javu automaticky.\n\n';
 
             if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
-                errorMsg += 'Důvod: Vypršel časový limit připojení.\n';
+                errorMsg += 'Důvod: Vypršel časový limit připojení (zkontrolujte internet).\n';
             } else if (error.code === 'ENOTFOUND') {
                 errorMsg += 'Důvod: Nelze se připojit k serveru.\n';
-            } else if (error.message && error.message.includes('arraybuffer')) {
-                errorMsg += 'Důvod: Chyba při stahování souboru.\n';
             } else {
                 errorMsg += `Důvod: ${error.message}\n`;
             }
 
             errorMsg += '\nStáhni a nainstaluj Java 21 manuálně:\n';
-            errorMsg += 'https://adoptium.net/temurin/releases/?version=21\n\n';
+            errorMsg += 'https://adoptium.net/temurin/releases/?version=21\n';
             errorMsg += 'Nebo nastav cestu k existující Javě v Nastavení.';
 
             throw new Error(errorMsg);
