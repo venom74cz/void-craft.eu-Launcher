@@ -437,39 +437,104 @@ function checkForUpdates() {
 function loadSkinDisplay(user) {
     const canvas = document.getElementById('skinViewer');
     const ctx = canvas.getContext('2d');
-
-    // Načíst skin z Crafatar (3D render) s timestamp pro vynučení refresh
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
     const timestamp = Date.now();
-    img.src = `https://crafatar.com/renders/body/${user.uuid}?overlay&t=${timestamp}`;
 
-    let rotation = 0;
-    let skinLoaded = false;
+    // UUID bez pomlček pro některé API
+    const uuidNoDashes = user.uuid ? user.uuid.replace(/-/g, '') : '';
+    const uuid = user.uuid || '';
+    const username = user.username || '';
 
-    img.onload = () => {
+    // Seznam skin API zdrojů s fallback - zkouší postupně dokud některé nezfunguje
+    const skinSources = [
+        // MC-Heads - velmi spolehlivé, podporuje UUID i username
+        `https://mc-heads.net/body/${username}/100`,
+        // Crafatar - populární, podporuje UUID s pomlčkami
+        `https://crafatar.com/renders/body/${uuid}?overlay&scale=4&t=${timestamp}`,
+        // Visage - plný render těla
+        `https://visage.surgeplay.com/full/100/${uuidNoDashes}`,
+        // Minotar - jednoduchý ale spolehlivý
+        `https://minotar.net/body/${username}/100`,
+        // Cravatar avatars jako fallback
+        `https://cravatar.eu/helmavatar/${username}/100`,
+        // MC-Heads avatar jako poslední záloha
+        `https://mc-heads.net/avatar/${username}/100`
+    ];
+
+    let currentSourceIndex = 0;
+
+    function tryLoadSkin() {
+        if (currentSourceIndex >= skinSources.length) {
+            // Všechny zdroje selhaly, použít výchozí ikonu
+            console.warn('[LAUNCHER] Všechny skin zdroje selhaly, používám výchozí ikonu');
+            showDefaultSkin();
+            return;
+        }
+
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        const sourceUrl = skinSources[currentSourceIndex];
+
+        console.log(`[LAUNCHER] Zkouším načíst skin z: ${sourceUrl.split('?')[0]}...`);
+
+        img.onload = () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const maxHeight = canvas.height - 10;
+            const maxWidth = canvas.width - 10;
+            const scaleHeight = maxHeight / img.height;
+            const scaleWidth = maxWidth / img.width;
+            const scale = Math.min(scaleHeight, scaleWidth);
+            const imgWidth = img.width * scale;
+            const imgHeight = img.height * scale;
+            const x = (canvas.width - imgWidth) / 2;
+            const y = (canvas.height - imgHeight) / 2;
+
+            ctx.drawImage(img, x, y, imgWidth, imgHeight);
+            console.log(`[LAUNCHER] ✅ Skin úspěšně načten pro: ${user.username} (zdroj #${currentSourceIndex + 1})`);
+        };
+
+        img.onerror = () => {
+            console.warn(`[LAUNCHER] ⚠️ Skin zdroj #${currentSourceIndex + 1} selhal, zkouším další...`);
+            currentSourceIndex++;
+            tryLoadSkin();
+        };
+
+        // Timeout pro případ, že server neodpovídá
+        setTimeout(() => {
+            if (!img.complete || img.naturalHeight === 0) {
+                console.warn(`[LAUNCHER] ⏱️ Timeout pro skin zdroj #${currentSourceIndex + 1}`);
+                img.src = ''; // Zrušit načítání
+                currentSourceIndex++;
+                tryLoadSkin();
+            }
+        }, 5000);
+
+        img.src = sourceUrl;
+    }
+
+    function showDefaultSkin() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        const maxHeight = canvas.height - 20;
-        const maxWidth = canvas.width - 20;
-        const scaleHeight = maxHeight / img.height;
-        const scaleWidth = maxWidth / img.width;
-        const scale = Math.min(scaleHeight, scaleWidth);
-        const imgWidth = img.width * scale;
-        const imgHeight = img.height * scale;
-        const x = (canvas.width - imgWidth) / 2;
-        const y = (canvas.height - imgHeight) / 2;
+        // Nakreslit gradient pozadí
+        const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        gradient.addColorStop(0, '#1e1b4b');
+        gradient.addColorStop(1, '#0f172a');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        ctx.drawImage(img, x, y, imgWidth, imgHeight);
-        console.log('[LAUNCHER] Skin načten pro:', user.username);
-    };
-
-    img.onerror = () => {
-        console.warn('[LAUNCHER] Nepodařilo se načíst skin, používám výchozí');
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // Nakreslit výchozí siluetu
         ctx.fillStyle = '#a78bfa';
-        ctx.font = '48px Arial';
+        ctx.font = '40px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText('👤', canvas.width / 2, canvas.height / 2 + 15);
-    };
+        ctx.textBaseline = 'middle';
+        ctx.fillText('👤', canvas.width / 2, canvas.height / 2);
+
+        // Přidat jméno pod ikonou
+        ctx.fillStyle = '#64748b';
+        ctx.font = '10px Arial';
+        ctx.fillText(user.username || 'Hráč', canvas.width / 2, canvas.height - 10);
+    }
+
+    // Začít načítání skinů
+    tryLoadSkin();
 }
