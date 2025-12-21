@@ -178,7 +178,7 @@ async function handleLaunch() {
         if (!modpackInstaller.isModpackInstalled(selectedModpack)) {
             console.log('[LAUNCHER] Modpack není nainstalován, začínám instalaci...');
             updateProgress(0, '🔍 Načítám informace o modpacku...');
-            manifest = await modpackInstaller.installModpack(selectedModpack, (progress, text) => {
+            const result = await modpackInstaller.installModpack(selectedModpack, (progress, text) => {
                 console.log(`[LAUNCHER] Instalace: ${progress}% - ${text}`);
                 // Přidání emoji pro lepší vizualizaci
                 let displayText = text;
@@ -189,24 +189,42 @@ async function handleLaunch() {
                 else if (text.includes('Hotovo') || text.includes('dokončena')) displayText = '✅ ' + text;
                 updateProgress(Math.round(progress * 0.5), displayText);
             });
-            modpackInstaller.markAsInstalled(selectedModpack, manifest);
+            manifest = result.manifest;
+            modpackInstaller.markAsInstalled(selectedModpack, manifest, result.fileId);
             console.log('[LAUNCHER] Modpack úspěšně nainstalován');
         } else {
-            console.log('[LAUNCHER] Modpack již nainstalován, načítám manifest...');
-            updateProgress(5, '✅ Modpack již nainstalován');
-            // Načíst manifest z instalovaného modpacku
-            const installedPath = require('path').join(
-                require('os').homedir(),
-                '.void-craft-launcher',
-                'minecraft',
-                '.installed',
-                `${selectedModpack}.json`
-            );
-            if (require('fs').existsSync(installedPath)) {
-                const installed = JSON.parse(require('fs').readFileSync(installedPath, 'utf8'));
-                manifest = installed.manifest;
-                // Mody se stahují pouze při instalaci, ne při každém spuštění
-                console.log('[LAUNCHER] Manifest načten, přeskakuji stahování modů (již nainstalováno)');
+            console.log('[LAUNCHER] Modpack nainstalován, kontroluji aktualizace...');
+            updateProgress(5, '🔄 Kontroluji aktualizace modpacku...');
+
+            // Vždy při spuštění zkontrolovat, zda není nová verze modpacku
+            const updateResult = await modpackInstaller.checkForModpackUpdate(selectedModpack, (progress, text) => {
+                console.log(`[LAUNCHER] Aktualizace: ${progress}% - ${text}`);
+                let displayText = text;
+                if (text.includes('Kontroluji')) displayText = '🔍 ' + text;
+                else if (text.includes('Stahování') || text.includes('Stahuji')) displayText = '⬇️ ' + text;
+                else if (text.includes('Rozbaluji')) displayText = '📦 ' + text;
+                else if (text.includes('Aktualizuji')) displayText = '🔄 ' + text;
+                else if (text.includes('Mod')) displayText = '🔧 ' + text;
+                updateProgress(Math.round(progress * 0.5), displayText);
+            });
+
+            if (updateResult.needsUpdate) {
+                console.log('[LAUNCHER] Modpack byl aktualizován na novou verzi');
+                manifest = updateResult.manifest;
+            } else {
+                // Načíst manifest z instalovaného modpacku
+                const installedPath = require('path').join(
+                    require('os').homedir(),
+                    '.void-craft-launcher',
+                    'minecraft',
+                    '.installed',
+                    `${selectedModpack}.json`
+                );
+                if (require('fs').existsSync(installedPath)) {
+                    const installed = JSON.parse(require('fs').readFileSync(installedPath, 'utf8'));
+                    manifest = installed.manifest;
+                }
+                console.log('[LAUNCHER] Modpack je aktuální, používám stávající manifest');
             }
         }
 
@@ -390,7 +408,7 @@ async function handleDownloadModpack(modpackId) {
         console.log('[LAUNCHER] Stahuji modpack ID:', modpackId);
         updateProgress(0, '🔍 Načítám informace o modpacku...');
 
-        const manifest = await modpackInstaller.installModpack(modpackId, (progress, text) => {
+        const result = await modpackInstaller.installModpack(modpackId, (progress, text) => {
             console.log(`[LAUNCHER] Instalace: ${progress}% - ${text}`);
             let displayText = text;
             if (text.includes('Načítám')) displayText = '🔍 ' + text;
@@ -401,7 +419,7 @@ async function handleDownloadModpack(modpackId) {
             updateProgress(progress, displayText);
         });
 
-        modpackInstaller.markAsInstalled(modpackId, manifest);
+        modpackInstaller.markAsInstalled(modpackId, result.manifest, result.fileId);
         console.log('[LAUNCHER] Modpack úspěšně stažen');
 
         updateProgress(100, '✅ Modpack stažen!');
