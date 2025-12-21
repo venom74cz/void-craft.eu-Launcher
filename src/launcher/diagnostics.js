@@ -49,7 +49,7 @@ class Diagnostics {
     async checkJava() {
         try {
             const javaPath = await javaManager.getJavaPath();
-            
+
             if (!javaPath) {
                 return {
                     status: 'error',
@@ -57,9 +57,9 @@ class Diagnostics {
                     autoFixed: false
                 };
             }
-            
+
             const version = await javaManager.checkJavaVersion(javaPath);
-            
+
             if (version && version >= 21) {
                 return {
                     status: 'ok',
@@ -92,7 +92,7 @@ class Diagnostics {
         try {
             const totalRAM = Math.round(os.totalmem() / 1024 / 1024 / 1024);
             const freeRAM = Math.round(os.freemem() / 1024 / 1024 / 1024);
-            
+
             if (totalRAM < 4) {
                 return {
                     status: 'warning',
@@ -124,7 +124,7 @@ class Diagnostics {
     async checkFiles(modpackId) {
         try {
             const installedPath = path.join(this.gameDir, '.installed', `${modpackId}.json`);
-            
+
             if (!fs.existsSync(installedPath)) {
                 return {
                     status: 'warning',
@@ -135,7 +135,7 @@ class Diagnostics {
 
             const installed = JSON.parse(fs.readFileSync(installedPath, 'utf8'));
             const manifest = installed.manifest;
-            
+
             if (!manifest) {
                 return {
                     status: 'error',
@@ -147,7 +147,7 @@ class Diagnostics {
             // Zkontrolovat verzi JSON
             const versionName = manifest.minecraft?.version || '1.20.1';
             const versionJsonPath = path.join(this.gameDir, 'versions', versionName, `${versionName}.json`);
-            
+
             let missingFiles = [];
             if (!fs.existsSync(versionJsonPath)) {
                 missingFiles.push(`Version JSON: ${versionName}`);
@@ -163,7 +163,7 @@ class Diagnostics {
                 // Pokusit se opravit - smazat .installed a vynutit reinstalaci
                 console.log('[DIAGNOSTICS] Chybějící soubory, označuji pro reinstalaci...');
                 fs.unlinkSync(installedPath);
-                
+
                 return {
                     status: 'ok',
                     message: `Chyběly soubory (${missingFiles.join(', ')}), označeno pro reinstalaci`,
@@ -188,7 +188,7 @@ class Diagnostics {
     async checkNetwork() {
         try {
             const axios = require('axios');
-            
+
             // Test připojení k Mojang
             const startTime = Date.now();
             await axios.get('https://launchermeta.mojang.com/mc/game/version_manifest.json', { timeout: 5000 });
@@ -216,7 +216,7 @@ class Diagnostics {
     async reportDiagnostics(results) {
         try {
             const axios = require('axios');
-            const webhookUrl = 'https://discord.com/api/webhooks/1432703648428720219/uGexSbrMx-R_IR31DlZKeVwaYw4VHJDl0Lh9pd3UChs-4o8vgKOOli5wzROzG3SXXWbR';
+            const webhookUrl = 'https://discord.com/api/webhooks/1449123709003632791/Yf3bHPWvLshCo1H7KCV3dTZpM0DNJoOPgFG67CRYuWLKFTMkU5Q394-yuSM-7dIn5BWZ';
 
             const fields = [];
             let color = 0x7c3aed; // Fialová (vše OK)
@@ -255,14 +255,14 @@ class Diagnostics {
                     const account = JSON.parse(fs.readFileSync(accountPath, 'utf8'));
                     username = account.username;
                 }
-            } catch (e) {}
+            } catch (e) { }
 
             const embed = {
                 title: '🔍 Diagnostický test',
                 color: color,
                 fields: fields,
-                footer: { 
-                    text: `Uživatel: ${username} | ${os.platform()} ${os.arch()}` 
+                footer: {
+                    text: `Uživatel: ${username} | ${os.platform()} ${os.arch()}`
                 },
                 timestamp: new Date().toISOString()
             };

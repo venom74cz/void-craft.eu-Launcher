@@ -5,7 +5,7 @@ const path = require('path');
 
 class CrashReporter {
     constructor() {
-        this.webhookUrl = 'https://discord.com/api/webhooks/1432703648428720219/uGexSbrMx-R_IR31DlZKeVwaYw4VHJDl0Lh9pd3UChs-4o8vgKOOli5wzROzG3SXXWbR';
+        this.webhookUrl = 'https://discord.com/api/webhooks/1449123709003632791/Yf3bHPWvLshCo1H7KCV3dTZpM0DNJoOPgFG67CRYuWLKFTMkU5Q394-yuSM-7dIn5BWZ';
     }
 
     async reportCrash(error, context = '') {
@@ -30,7 +30,7 @@ class CrashReporter {
                     const account = JSON.parse(fs.readFileSync(accountPath, 'utf8'));
                     crashData.user = account.username;
                 }
-            } catch (e) {}
+            } catch (e) { }
 
             const embed = {
                 title: '🔴 Launcher Crash Report',

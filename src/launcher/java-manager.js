@@ -8,6 +8,8 @@ const AdmZip = require('adm-zip');
 class JavaManager {
     constructor() {
         this.javaDir = path.join(os.homedir(), '.void-craft-launcher', 'java');
+        this.isWindows = os.platform() === 'win32';
+        this.javaExecutable = this.isWindows ? 'java.exe' : 'java';
         this.ensureDirectories();
     }
 
@@ -65,7 +67,6 @@ class JavaManager {
             if (fs.existsSync(configPath)) {
                 const settings = JSON.parse(fs.readFileSync(configPath, 'utf8'));
                 const javaPath = settings.javaPath;
-                // Zkontrolovat zda soubor existuje
                 if (javaPath && fs.existsSync(javaPath)) {
                     return javaPath;
                 } else if (javaPath) {
@@ -79,59 +80,75 @@ class JavaManager {
     }
 
     async findSystemJava() {
+        const command = this.isWindows ? 'where java' : 'which java';
+
         return new Promise((resolve) => {
-            // Zkusit where java (může být nestandardní instalace)
-            exec('where java', (err, out) => {
+            exec(command, (err, out) => {
                 if (!err && out) {
                     const javaPath = out.trim().split('\n')[0].trim();
-                    console.log('[JAVA] Nalezena Java přes where:', javaPath);
+                    console.log('[JAVA] Nalezena Java přes', this.isWindows ? 'where' : 'which', ':', javaPath);
                     resolve(javaPath);
                 } else {
-                    console.log('[JAVA] where java nenalezl nic, zkouším Adoptium složky...');
-                    const javaPath = this.findJavaInProgramFiles();
+                    console.log('[JAVA]', command, 'nenalezl nic, zkouším standardní složky...');
+                    const javaPath = this.findJavaInStandardPaths();
                     resolve(javaPath);
                 }
             });
         });
     }
-    
-    findJavaInProgramFiles() {
-        const possiblePaths = [
-            'C:\\Program Files\\Eclipse Adoptium',
-            'C:\\Program Files (x86)\\Eclipse Adoptium'
-        ];
-        
+
+    findJavaInStandardPaths() {
+        let possiblePaths = [];
+
+        if (this.isWindows) {
+            possiblePaths = [
+                'C:\\Program Files\\Eclipse Adoptium',
+                'C:\\Program Files (x86)\\Eclipse Adoptium',
+                'C:\\Program Files\\Java',
+                'C:\\Program Files (x86)\\Java'
+            ];
+        } else {
+            possiblePaths = [
+                '/usr/lib/jvm',
+                '/opt/java',
+                '/opt/jdk',
+                path.join(os.homedir(), '.sdkman/candidates/java'),
+                '/usr/java'
+            ];
+        }
+
         for (const basePath of possiblePaths) {
             if (!fs.existsSync(basePath)) continue;
-            
+
             try {
                 const dirs = fs.readdirSync(basePath);
-                for (const dir of dirs) {
-                    const javaExe = path.join(basePath, dir, 'bin', 'java.exe');
+                const sortedDirs = dirs.sort().reverse();
+
+                for (const dir of sortedDirs) {
+                    const javaExe = path.join(basePath, dir, 'bin', this.javaExecutable);
                     if (fs.existsSync(javaExe)) {
-                        console.log('[JAVA] Nalezena Adoptium Java:', javaExe);
+                        console.log('[JAVA] Nalezena Java:', javaExe);
                         return javaExe;
                     }
                 }
             } catch (e) {
-                console.error('[JAVA] Chyba při prohledávání Adoptium:', basePath, e.message);
+                console.error('[JAVA] Chyba při prohledávání:', basePath, e.message);
             }
         }
-        
+
         return null;
     }
 
     async findLauncherJava() {
-        const javaExe = path.join(this.javaDir, 'bin', 'java.exe');
+        const javaExe = path.join(this.javaDir, 'bin', this.javaExecutable);
         if (fs.existsSync(javaExe)) {
             return javaExe;
         }
 
-        // Zkusit najít v podsložkách
         if (fs.existsSync(this.javaDir)) {
             const dirs = fs.readdirSync(this.javaDir);
             for (const dir of dirs) {
-                const possiblePath = path.join(this.javaDir, dir, 'bin', 'java.exe');
+                const possiblePath = path.join(this.javaDir, dir, 'bin', this.javaExecutable);
                 if (fs.existsSync(possiblePath)) {
                     return possiblePath;
                 }
@@ -142,13 +159,14 @@ class JavaManager {
     }
 
     async downloadJava(progressCallback) {
-        const zipPath = path.join(this.javaDir, 'java.zip');
-        
-        try {
-            // Adoptium (Eclipse Temurin) Java 21 LTS
-            const javaUrl = 'https://api.adoptium.net/v3/binary/latest/21/ga/windows/x64/jdk/hotspot/normal/eclipse';
+        const archiveExt = this.isWindows ? 'zip' : 'tar.gz';
+        const archivePath = path.join(this.javaDir, `java.${archiveExt}`);
+        const osType = this.isWindows ? 'windows' : 'linux';
 
-            console.log('Stahuji Java 21 (Adoptium)...');
+        try {
+            const javaUrl = `https://api.adoptium.net/v3/binary/latest/21/ga/${osType}/x64/jdk/hotspot/normal/eclipse`;
+
+            console.log(`Stahuji Java 21 (Adoptium) pro ${osType}...`);
             if (progressCallback) progressCallback('Stahuji Java 21 (Adoptium)...');
 
             const response = await axios({
@@ -166,44 +184,55 @@ class JavaManager {
             });
 
             console.log('Ukládám Javu...');
-            fs.writeFileSync(zipPath, Buffer.from(response.data));
+            fs.writeFileSync(archivePath, Buffer.from(response.data));
 
             console.log('Rozbaluji Javu...');
             if (progressCallback) progressCallback('Rozbaluji Javu...');
-            
-            const zip = new AdmZip(zipPath);
-            zip.extractAllTo(this.javaDir, true);
 
-            // Smazat zip soubor
-            if (fs.existsSync(zipPath)) {
-                fs.unlinkSync(zipPath);
+            if (this.isWindows) {
+                const zip = new AdmZip(archivePath);
+                zip.extractAllTo(this.javaDir, true);
+            } else {
+                await this.extractTarGz(archivePath, this.javaDir);
+            }
+
+            if (fs.existsSync(archivePath)) {
+                fs.unlinkSync(archivePath);
             }
 
             const javaPath = await this.findLauncherJava();
             if (javaPath) {
+                if (!this.isWindows) {
+                    try {
+                        fs.chmodSync(javaPath, 0o755);
+                        console.log('[JAVA] Nastavena executable permission pro:', javaPath);
+                    } catch (e) {
+                        console.warn('[JAVA] Nelze nastavit permission:', e.message);
+                    }
+                }
+
                 console.log('Java úspěšně nainstalována (Adoptium):', javaPath);
                 return javaPath;
             }
 
-            throw new Error('Java se nepodařilo nainstalovat - java.exe nenalezena po extrakci');
+            throw new Error('Java se nepodařilo nainstalovat - java nenalezena po extrakci');
         } catch (error) {
             console.error('Chyba při stahování Javy:', error.message);
-            
-            // Vymazat poškozený zip pokud existuje
-            if (fs.existsSync(zipPath)) {
+
+            if (fs.existsSync(archivePath)) {
                 try {
-                    fs.unlinkSync(zipPath);
-                    console.log('[JAVA] Poškozený zip smazán');
+                    fs.unlinkSync(archivePath);
+                    console.log('[JAVA] Poškozený archiv smazán');
                 } catch (e) {
-                    console.error('[JAVA] Nelze smazat poškozený zip:', e);
+                    console.error('[JAVA] Nelze smazat poškozený archiv:', e);
                 }
             }
-            
+
             const crashReporter = require('./crash-reporter');
             crashReporter.reportCrash(error, 'Stahování Java 21');
-            
+
             let errorMsg = 'Nepodařilo se stáhnout Javu automaticky.\n\n';
-            
+
             if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
                 errorMsg += 'Důvod: Vypršel časový limit připojení.\n';
             } else if (error.code === 'ENOTFOUND') {
@@ -213,26 +242,39 @@ class JavaManager {
             } else {
                 errorMsg += `Důvod: ${error.message}\n`;
             }
-            
+
             errorMsg += '\nStáhni a nainstaluj Java 21 manuálně:\n';
             errorMsg += 'https://adoptium.net/temurin/releases/?version=21\n\n';
             errorMsg += 'Nebo nastav cestu k existující Javě v Nastavení.';
-            
+
             throw new Error(errorMsg);
         }
+    }
+
+    async extractTarGz(archivePath, destDir) {
+        return new Promise((resolve, reject) => {
+            exec(`tar -xzf "${archivePath}" -C "${destDir}"`, (error, stdout, stderr) => {
+                if (error) {
+                    console.error('[JAVA] Chyba při extrakci tar.gz:', stderr);
+                    reject(error);
+                } else {
+                    console.log('[JAVA] tar.gz úspěšně extrahován');
+                    resolve();
+                }
+            });
+        });
     }
 
     async checkJavaVersion(javaPath) {
         return new Promise((resolve) => {
             exec(`"${javaPath}" -version`, (error, stdout, stderr) => {
                 if (!error || stderr) {
-                    // Kontrola zda je to Adoptium (Temurin)
                     if (!stderr.includes('Temurin')) {
                         console.warn('[JAVA] Není Adoptium/Temurin:', javaPath);
                         resolve(null);
                         return;
                     }
-                    
+
                     const versionMatch = stderr.match(/version "(\d+)/);
                     if (versionMatch) {
                         resolve(parseInt(versionMatch[1]));
