@@ -8,7 +8,7 @@ class MinecraftDirect {
         this.gameDir = gameDir;
         this.minecraftProcess = null;
     }
-    
+
     isRunning() {
         if (!this.minecraftProcess) return false;
         try {
@@ -21,7 +21,7 @@ class MinecraftDirect {
             return false;
         }
     }
-    
+
     kill() {
         if (this.minecraftProcess) {
             try {
@@ -62,41 +62,41 @@ class MinecraftDirect {
                 }
             }
 
-            
+
             // 2. Logování RAM nastavení
             console.log('[MC-DIRECT] Java nalezena.');
 
             // Načíst version JSON
             const versionJsonPath = path.join(this.gameDir, 'versions', versionName, `${versionName}.json`);
             console.log('[MC-DIRECT] Načítám JSON:', versionJsonPath);
-            
+
             if (!fs.existsSync(versionJsonPath)) {
                 throw new Error(`Version JSON nenalezen: ${versionJsonPath}`);
             }
-            
+
             const versionData = JSON.parse(fs.readFileSync(versionJsonPath, 'utf8'));
             console.log('[MC-DIRECT] JSON načten, mainClass:', versionData.mainClass);
-            
+
             if (onProgress) onProgress(40, 'Připravuji classpath...');
-            
+
             // Sestavit classpath
             const classpath = this.buildClasspath(versionData, versionName);
             const classpathItems = classpath.split(path.delimiter);
             console.log('[MC-DIRECT] Classpath má', classpathItems.length, 'položek');
-            
+
             if (onProgress) onProgress(60, 'Připravuji argumenty...');
-            
+
             // Sestavit argumenty
             const args = this.buildArguments(versionData, user, versionName);
             console.log('[MC-DIRECT] Argumentů:', args.length);
-            
+
             if (onProgress) onProgress(70, 'Extrahuji natives...');
-            
+
             // Extrahovat natives
             await this.extractNatives(versionData, versionName);
-            
+
             if (onProgress) onProgress(80, 'Spouštím hru...');
-            
+
             // Přidat JVM argumenty z JSON
             const jvmArgs = [];
             if (versionData.arguments && versionData.arguments.jvm) {
@@ -131,7 +131,7 @@ class MinecraftDirect {
                     }
                 }
             }
-            
+
             // Optimalizované JVM flagy pro Minecraft (Java 21+ s G1GC)
             const extraJvmFlags = [
                 '-XX:+UnlockExperimentalVMOptions',
@@ -192,17 +192,17 @@ class MinecraftDirect {
                 versionData.mainClass,
                 ...args
             ];
-            
+
             const classpathFile = path.join(this.gameDir, 'classpath.txt');
             fs.writeFileSync(classpathFile, classpath);
-            
+
             const cpIndex = javaArgs.indexOf('-cp');
             if (cpIndex !== -1) {
                 javaArgs[cpIndex + 1] = `@${classpathFile}`;
             }
-            
+
             console.log('[MC-DIRECT] Spouštím proces:', javaPath);
-            
+
             // 3. Zachycení chyb při spouštění procesu
             try {
                 const minecraft = spawn(`"${javaPath}"`, javaArgs, {
@@ -222,14 +222,14 @@ class MinecraftDirect {
                 });
 
                 let stderrBuffer = [];
-                
+
                 minecraft.stdout.on('data', (data) => {
                     const lines = data.toString().split('\n');
                     lines.forEach(line => {
                         if (line.trim()) console.log('[MINECRAFT]', line.trim());
                     });
                 });
-                
+
                 minecraft.stderr.on('data', (data) => {
                     const lines = data.toString().split('\n');
                     lines.forEach(line => {
@@ -240,19 +240,14 @@ class MinecraftDirect {
                         }
                     });
                 });
-                
+
                 // 4. Detekce chybových kódů při ukončení
                 minecraft.on('close', (code) => {
                     if (code !== 0) {
                         console.error(`[MC-DIRECT] Minecraft byl neočekávaně ukončen s chybovým kódem: ${code}`);
                         const crashReporter = require('./crash-reporter');
-                        const errorMsg = stderrBuffer.length > 0 
-                            ? `Minecraft se ukončil s chybovým kódem ${code}\n\nPoslední chyby:\n${stderrBuffer.slice(-10).join('\n')}`
-                            : `Minecraft se ukončil s chybovým kódem ${code}`;
-                        crashReporter.reportCrash(
-                            new Error(errorMsg),
-                            `Spuštění hry - Exit code: ${code}`
-                        );
+                        // Použít novou metodu, která odesílá crash reporty a logy jako soubory
+                        crashReporter.reportGameCrash(code, stderrBuffer, this.gameDir);
                     } else {
                         console.log('[MC-DIRECT] Minecraft byl úspěšně ukončen.');
                     }
@@ -263,22 +258,22 @@ class MinecraftDirect {
                 console.error('[MC-DIRECT] Kritická chyba při volání spawn:', spawnError);
                 throw spawnError;
             }
-            
+
             if (onProgress) onProgress(100, 'Minecraft spuštěn!');
-            
+
             return true;
         } catch (error) {
             console.error('[MC-DIRECT] Během spouštění Minecraftu došlo k chybě:', error);
             throw error;
         }
     }
-    
+
     buildClasspath(versionData, versionName) {
         const libraries = [];
         let vanillaVersion = versionData.inheritsFrom || versionName.split('-')[0];
-        
+
         console.log('[MC-DIRECT] Vanilla verze pro classpath:', vanillaVersion);
-        
+
         const processLibraries = (libs) => {
             if (!libs) return;
             for (const lib of libs) {
@@ -304,16 +299,16 @@ class MinecraftDirect {
 
         // Přidat modloader knihovny
         processLibraries(versionData.libraries);
-        
+
         console.log('[MC-DIRECT] Celkem knihoven v classpath:', libraries.length);
         // Nahradit všechny ${classpath_separator} za správný delimiter
         const classpath = libraries.join(path.delimiter);
         return classpath.replace(/\$\{classpath_separator\}/g, path.delimiter);
     }
-    
+
     buildArguments(versionData, user, versionName) {
         const args = [];
-        
+
         // Získat správný asset index z version JSON
         let assetIndexId = '17';
         if (versionData.assetIndex && versionData.assetIndex.id) {
@@ -332,9 +327,9 @@ class MinecraftDirect {
                 }
             }
         }
-        
+
         console.log('[MC-DIRECT] Použit asset index:', assetIndexId);
-        
+
         const replacements = {
             '${auth_player_name}': user.username,
             '${version_name}': versionName,
@@ -392,7 +387,7 @@ class MinecraftDirect {
                 args.push(replaceFunc(arg));
             }
         }
-        
+
         // Přidat povinné argumenty pokud chybí
         if (!args.includes('--username')) {
             args.push('--username', user.username);
@@ -412,22 +407,22 @@ class MinecraftDirect {
         if (!args.includes('--assetsDir')) {
             args.push('--assetsDir', path.join(this.gameDir, 'assets'));
         }
-        
+
         console.log('[MC-DIRECT] Username argument:', user.username);
-        
+
         return args;
     }
-    
+
     async extractNatives(versionData, versionName) {
         const AdmZip = require('adm-zip');
         const nativesDir = path.join(this.gameDir, 'natives', versionName);
-        
+
         if (fs.existsSync(nativesDir)) {
             // Předpokládáme, že natives jsou již extrahovány
             return;
         }
         fs.mkdirSync(nativesDir, { recursive: true });
-        
+
         if (versionData.libraries) {
             for (const lib of versionData.libraries) {
                 const osName = os.platform() === 'win32' ? 'windows' : (os.platform() === 'darwin' ? 'osx' : 'linux');
@@ -449,7 +444,7 @@ class MinecraftDirect {
             }
         }
     }
-    
+
     getAssetsIndex(versionName) {
         let vanillaVersion = versionName.split('-')[0];
         if (versionName.startsWith('neoforge')) {
@@ -459,7 +454,7 @@ class MinecraftDirect {
         }
         return this.getVanillaAssetsIndex(vanillaVersion);
     }
-    
+
     getVanillaAssetsIndex(version) {
         if (version.startsWith('1.21')) return '17';
         if (version.startsWith('1.20')) return '16';

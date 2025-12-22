@@ -1,6 +1,6 @@
 {
   "name": "void-craft-launcher",
-  "version": "2.4.0",
+  "version": "2.4.1",
   "description": "Minecraft launcher pro void-craft.eu server",
   "main": "src/main/main.js",
   "scripts": {
@@ -17,6 +17,7 @@
     "adm-zip": "^0.5.10",
     "axios": "^1.6.0",
     "electron-updater": "^6.1.7",
+    "form-data": "^4.0.5",
     "minecraft-launcher-core": "^3.17.3",
     "three": "^0.180.0"
   },

@@ -128,7 +128,18 @@ class Diagnostics {
 
     async checkFiles(modpackId) {
         try {
-            const installedPath = path.join(this.gameDir, '.installed', `${modpackId}.json`);
+            // Fallback to baseDir if gameDir is not set
+            const gameDir = this.gameDir || this.baseDir;
+
+            if (!modpackId) {
+                return {
+                    status: 'warning',
+                    message: 'Žádný modpack není vybrán',
+                    autoFixed: false
+                };
+            }
+
+            const installedPath = path.join(gameDir, '.installed', `${modpackId}.json`);
 
             if (!fs.existsSync(installedPath)) {
                 return {
@@ -151,7 +162,7 @@ class Diagnostics {
 
             // Zkontrolovat verzi JSON
             const versionName = manifest.minecraft?.version || '1.20.1';
-            const versionJsonPath = path.join(this.gameDir, 'versions', versionName, `${versionName}.json`);
+            const versionJsonPath = path.join(gameDir, 'versions', versionName, `${versionName}.json`);
 
             let missingFiles = [];
             if (!fs.existsSync(versionJsonPath)) {
@@ -159,9 +170,54 @@ class Diagnostics {
             }
 
             // Zkontrolovat assets
-            const assetsDir = path.join(this.gameDir, 'assets');
+            const assetsDir = path.join(gameDir, 'assets');
             if (!fs.existsSync(assetsDir)) {
                 missingFiles.push('Assets');
+            }
+
+            // Zkontrolovat kritické knihovny (libraries)
+            const librariesDir = path.join(gameDir, 'libraries');
+            if (fs.existsSync(librariesDir) && fs.existsSync(versionJsonPath)) {
+                try {
+                    const versionJson = JSON.parse(fs.readFileSync(versionJsonPath, 'utf8'));
+                    const libraries = versionJson.libraries || [];
+
+                    // Kritické knihovny, které způsobují crash, když chybí
+                    const criticalLibraryPatterns = [
+                        'jopt-simple',
+                        'modlauncher',
+                        'bootstraplauncher',
+                        'securejarhandler',
+                        'asm-',
+                        'neoforge'
+                    ];
+
+                    let missingLibraries = [];
+
+                    for (const lib of libraries) {
+                        if (!lib.downloads?.artifact?.path) continue;
+
+                        const libPath = path.join(librariesDir, lib.downloads.artifact.path);
+                        const libName = lib.name || lib.downloads.artifact.path;
+
+                        // Kontrola pouze kritických knihoven
+                        const isCritical = criticalLibraryPatterns.some(pattern =>
+                            libName.toLowerCase().includes(pattern.toLowerCase())
+                        );
+
+                        if (isCritical && !fs.existsSync(libPath)) {
+                            missingLibraries.push(libName.split(':').pop() || libName);
+                        }
+                    }
+
+                    if (missingLibraries.length > 0) {
+                        missingFiles.push(`Knihovny: ${missingLibraries.slice(0, 3).join(', ')}${missingLibraries.length > 3 ? ` a ${missingLibraries.length - 3} další` : ''}`);
+                    }
+                } catch (libError) {
+                    console.error('[DIAGNOSTICS] Chyba při kontrole knihoven:', libError);
+                }
+            } else if (!fs.existsSync(librariesDir)) {
+                missingFiles.push('Libraries');
             }
 
             if (missingFiles.length > 0) {
