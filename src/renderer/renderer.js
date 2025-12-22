@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
         loadSavedAccount();
         await loadModpackInfo();
+        loadCustomModpacks();
         setupEventListeners();
         loadVersion();
     } catch (error) {
@@ -45,6 +46,12 @@ async function loadModpackInfo() {
             modpackItem.querySelector('.modpack-name').textContent = modpack.name;
             modpackItem.querySelector('.modpack-version').textContent =
                 `v${latestFile.displayName || latestFile.fileName}`;
+
+            // Načíst ikonu modpacku z CurseForge
+            const iconElement = modpackItem.querySelector('.modpack-icon');
+            if (iconElement && modpack.logo && modpack.logo.url) {
+                iconElement.innerHTML = `<img src="${modpack.logo.url}" alt="${modpack.name}" style="width: 40px; height: 40px; border-radius: 6px; object-fit: cover;">`;
+            }
         }
     } catch (error) {
         errorHandler.error('Chyba při načítání modpacku', error);
@@ -62,6 +69,7 @@ function setupEventListeners() {
     document.getElementById('settingsBtn').addEventListener('click', openSettings);
     document.getElementById('diagnosticsBtn').addEventListener('click', runDiagnostics);
     document.getElementById('checkUpdateBtn').addEventListener('click', checkForUpdates);
+    document.getElementById('addModpackBtn').addEventListener('click', openAddModpackModal);
 
     // Titlebar buttons
     const { getCurrentWindow } = require('@electron/remote');
@@ -83,40 +91,324 @@ function setupEventListeners() {
         win.close();
     });
 
+    setupModpackListeners();
+}
+
+function openSettings() {
+    const modal = document.getElementById('settingsModal');
+    modal.style.display = 'flex';
+    loadSettingsModal();
+    setupSettingsModalListeners();
+}
+
+function closeSettingsModal() {
+    document.getElementById('settingsModal').style.display = 'none';
+}
+
+function loadSettingsModal() {
+    const configPath = path.join(os.homedir(), '.void-craft-launcher', 'settings.json');
+    const modpacksDir = path.join(os.homedir(), '.void-craft-launcher', 'modpacks');
+    const logsDir = path.join(os.homedir(), '.void-craft-launcher', 'logs');
+
+    document.getElementById('minecraftDir').value = modpacksDir;
+    document.getElementById('logsDir').value = logsDir;
+
+    // Detekce maximální RAM
+    const totalGB = Math.floor(os.totalmem() / (1024 * 1024 * 1024));
+    const ramSlider = document.getElementById('ramSlider');
+    const ramInput = document.getElementById('ramInput');
+    const ramMaxInfo = document.getElementById('ramMaxInfo');
+    ramSlider.max = Math.max(2, totalGB);
+    ramInput.max = Math.max(2, totalGB);
+    ramMaxInfo.textContent = `(Max: ${totalGB} GB)`;
+
+    let ramValue = 12;
+    if (fs.existsSync(configPath)) {
+        try {
+            const settings = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+            if (settings.ramAllocation) ramValue = Number(settings.ramAllocation);
+            if (settings.resolution) document.getElementById('resolution').value = settings.resolution;
+            if (settings.javaPath) document.getElementById('javaPath').value = settings.javaPath;
+        } catch (e) {
+            console.error('[SETTINGS] Chyba při načítání nastavení:', e);
+        }
+    }
+    if (ramValue > ramSlider.max) ramValue = ramSlider.max;
+    ramSlider.value = ramValue;
+    ramInput.value = ramValue;
+}
+
+function saveSettingsModal() {
+    const configPath = path.join(os.homedir(), '.void-craft-launcher', 'settings.json');
+    const ramValue = document.getElementById('ramInput').value;
+    const settings = {
+        ramAllocation: ramValue,
+        resolution: document.getElementById('resolution').value,
+        javaPath: document.getElementById('javaPath').value
+    };
+
+    const configDir = path.dirname(configPath);
+    if (!fs.existsSync(configDir)) {
+        fs.mkdirSync(configDir, { recursive: true });
+    }
+
+    fs.writeFileSync(configPath, JSON.stringify(settings, null, 2));
+    closeSettingsModal();
+    showToast('✅ Nastavení uloženo!');
+}
+
+function showToast(message) {
+    // Jednoduchý toast notification
+    const toast = document.createElement('div');
+    toast.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(14, 116, 144, 0.9);
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        z-index: 2000;
+        font-weight: bold;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    `;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => {
+        toast.remove();
+    }, 2000);
+}
+
+function setupSettingsModalListeners() {
+    // Zavírací tlačítka
+    const closeBtn = document.getElementById('closeSettingsModal');
+    const cancelBtn = document.getElementById('cancelSettingsBtn');
+    const saveBtn = document.getElementById('saveSettingsBtn');
+    const modal = document.getElementById('settingsModal');
+
+    // Odstranit staré listenery klonováním
+    closeBtn.replaceWith(closeBtn.cloneNode(true));
+    cancelBtn.replaceWith(cancelBtn.cloneNode(true));
+    saveBtn.replaceWith(saveBtn.cloneNode(true));
+
+    document.getElementById('closeSettingsModal').addEventListener('click', closeSettingsModal);
+    document.getElementById('cancelSettingsBtn').addEventListener('click', closeSettingsModal);
+    document.getElementById('saveSettingsBtn').addEventListener('click', saveSettingsModal);
+
+    // Zavřít kliknutím mimo modal
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeSettingsModal();
+    });
+
+    // RAM slider sync
+    const ramSlider = document.getElementById('ramSlider');
+    const ramInput = document.getElementById('ramInput');
+
+    ramSlider.oninput = () => {
+        ramInput.value = ramSlider.value;
+    };
+    ramInput.oninput = () => {
+        let v = Number(ramInput.value);
+        if (isNaN(v) || v < Number(ramInput.min)) v = Number(ramInput.min);
+        if (v > Number(ramInput.max)) v = Number(ramInput.max);
+        ramInput.value = v;
+        ramSlider.value = v;
+    };
+}
+
+// Add Modpack Modal
+function openAddModpackModal() {
+    const modal = document.getElementById('addModpackModal');
+    modal.style.display = 'flex';
+    document.getElementById('customModpackId').value = '';
+    setupAddModpackListeners();
+}
+
+function closeAddModpackModal() {
+    document.getElementById('addModpackModal').style.display = 'none';
+}
+
+function setupAddModpackListeners() {
+    const closeBtn = document.getElementById('closeAddModpackModal');
+    const cancelBtn = document.getElementById('cancelAddModpackBtn');
+    const confirmBtn = document.getElementById('addModpackConfirmBtn');
+    const modal = document.getElementById('addModpackModal');
+
+    closeBtn.replaceWith(closeBtn.cloneNode(true));
+    cancelBtn.replaceWith(cancelBtn.cloneNode(true));
+    confirmBtn.replaceWith(confirmBtn.cloneNode(true));
+
+    document.getElementById('closeAddModpackModal').addEventListener('click', closeAddModpackModal);
+    document.getElementById('cancelAddModpackBtn').addEventListener('click', closeAddModpackModal);
+    document.getElementById('addModpackConfirmBtn').addEventListener('click', addCustomModpack);
+
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeAddModpackModal();
+    });
+}
+
+async function addCustomModpack() {
+    const idInput = document.getElementById('customModpackId');
+    const modpackId = idInput.value.trim();
+
+    if (!modpackId || isNaN(modpackId)) {
+        showToast('❌ Zadej platné Project ID (číslo)');
+        return;
+    }
+
+    try {
+        // Ověřit, že modpack existuje
+        showToast('🔍 Ověřuji modpack...');
+        const modpack = await curseforge.getModpack(modpackId);
+
+        // Uložit do seznamu
+        saveCustomModpack(modpackId, modpack.name);
+
+        // Přidat do UI
+        addModpackToList(modpackId, modpack.name, modpack.logo?.url);
+
+        closeAddModpackModal();
+        showToast(`✅ Modpack "${modpack.name}" přidán!`);
+    } catch (error) {
+        console.error('[LAUNCHER] Chyba při přidávání modpacku:', error);
+        showToast('❌ Modpack nenalezen nebo chyba API');
+    }
+}
+
+function saveCustomModpack(id, name) {
+    const configPath = path.join(os.homedir(), '.void-craft-launcher', 'custom-modpacks.json');
+    let modpacks = [];
+
+    if (fs.existsSync(configPath)) {
+        try {
+            modpacks = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+        } catch (e) { }
+    }
+
+    // Nekontrolovat duplicity
+    if (!modpacks.find(m => m.id === id)) {
+        modpacks.push({ id, name });
+        fs.writeFileSync(configPath, JSON.stringify(modpacks, null, 2));
+    }
+}
+
+function loadCustomModpacks() {
+    const configPath = path.join(os.homedir(), '.void-craft-launcher', 'custom-modpacks.json');
+
+    if (fs.existsSync(configPath)) {
+        try {
+            const modpacks = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+            modpacks.forEach(async (mp) => {
+                try {
+                    const modpack = await curseforge.getModpack(mp.id);
+                    addModpackToList(mp.id, modpack.name, modpack.logo?.url, true);
+                } catch (e) {
+                    addModpackToList(mp.id, mp.name || `Modpack ${mp.id}`, null, true);
+                }
+            });
+        } catch (e) {
+            console.error('[LAUNCHER] Chyba při načítání custom modpacků:', e);
+        }
+    }
+}
+
+function addModpackToList(id, name, logoUrl, isCustom = false) {
+    const list = document.getElementById('modpackList');
+
+    // Kontrola duplicit
+    if (list.querySelector(`[data-id="${id}"]`)) return;
+
+    const item = document.createElement('div');
+    item.className = 'modpack-item';
+    item.dataset.id = id;
+    item.innerHTML = `
+        <div class="modpack-icon">${logoUrl ? `<img src="${logoUrl}" style="width: 40px; height: 40px; border-radius: 6px; object-fit: cover;">` : '📦'}</div>
+        <div class="modpack-info">
+            <div class="modpack-name">${name}</div>
+            <div class="modpack-version">Klikni pro výběr</div>
+        </div>
+        ${isCustom ? '<button class="btn-remove-modpack" title="Odebrat">✕</button>' : ''}
+    `;
+
+    list.appendChild(item);
+    setupModpackListeners();
+}
+
+function removeCustomModpack(id) {
+    const registryPath = path.join(os.homedir(), '.void-craft-launcher', 'installed-modpacks.json');
+    const configPath = path.join(os.homedir(), '.void-craft-launcher', 'custom-modpacks.json');
+
+    // Zkontrolovat jestli je nainstalovaný
+    let folderName = null;
+    let isInstalled = false;
+    if (fs.existsSync(registryPath)) {
+        try {
+            const registry = JSON.parse(fs.readFileSync(registryPath, 'utf8'));
+            if (registry[String(id)]) {
+                folderName = registry[String(id)].folderName;
+                isInstalled = true;
+            }
+        } catch (e) { }
+    }
+
+    // Zobrazit potvrzení podle stavu
+    const message = isInstalled
+        ? 'Opravdu chceš odebrat tento modpack?\n\nBudou smazány i všechny soubory modpacku (mody, config, světy...)!'
+        : 'Opravdu chceš odebrat tento modpack ze seznamu?';
+
+    if (!confirm(message)) {
+        return;
+    }
+
+    // Smazat z registru a složku pokud existuje
+    if (isInstalled && folderName) {
+        try {
+            const registry = JSON.parse(fs.readFileSync(registryPath, 'utf8'));
+            delete registry[String(id)];
+            fs.writeFileSync(registryPath, JSON.stringify(registry, null, 2));
+        } catch (e) { }
+
+        const modpackDir = path.join(os.homedir(), '.void-craft-launcher', 'modpacks', folderName);
+        if (fs.existsSync(modpackDir)) {
+            try {
+                fs.rmSync(modpackDir, { recursive: true, force: true });
+                console.log('[LAUNCHER] Smazána složka modpacku:', modpackDir);
+            } catch (e) {
+                console.error('[LAUNCHER] Chyba při mazání složky:', e);
+            }
+        }
+    }
+
+    // Odebrat z custom-modpacks.json
+    if (fs.existsSync(configPath)) {
+        try {
+            let modpacks = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+            modpacks = modpacks.filter(m => m.id !== id);
+            fs.writeFileSync(configPath, JSON.stringify(modpacks, null, 2));
+        } catch (e) { }
+    }
+
+    // Odebrat z UI
+    const item = document.querySelector(`.modpack-item[data-id="${id}"]`);
+    if (item) item.remove();
+
+    showToast(isInstalled ? '🗑️ Modpack a jeho soubory smazány' : '🗑️ Modpack odebrán ze seznamu');
+}
+
+function setupModpackListeners() {
     document.querySelectorAll('.modpack-item').forEach(item => {
-        item.addEventListener('click', (e) => {
-            // Ignorovat klik na tlačítko stažení
-            if (e.target.classList.contains('btn-download-modpack')) return;
+        item.onclick = (e) => {
+            if (e.target.classList.contains('btn-remove-modpack')) {
+                removeCustomModpack(item.dataset.id);
+                return;
+            }
 
             document.querySelectorAll('.modpack-item').forEach(i => i.classList.remove('active'));
             item.classList.add('active');
             selectedModpack = item.dataset.id;
-        });
+        };
     });
-
-    // Přidat event listenery pro tlačítka stažení
-    document.querySelectorAll('.btn-download-modpack').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            handleDownloadModpack(btn.dataset.id);
-        });
-    });
-}
-
-function openSettings() {
-    const { BrowserWindow } = require('@electron/remote');
-    const settingsWindow = new BrowserWindow({
-        width: 700,
-        height: 850,
-        parent: require('@electron/remote').getCurrentWindow(),
-        modal: true,
-        frame: false,
-        webPreferences: {
-            nodeIntegration: true,
-            contextIsolation: false
-        }
-    });
-    settingsWindow.loadFile(path.join(__dirname, 'settings.html'));
 }
 
 // Odhlášení
@@ -190,7 +482,6 @@ async function handleLaunch() {
                 updateProgress(Math.round(progress * 0.5), displayText);
             });
             manifest = result.manifest;
-            modpackInstaller.markAsInstalled(selectedModpack, manifest, result.fileId);
             console.log('[LAUNCHER] Modpack úspěšně nainstalován');
         } else {
             console.log('[LAUNCHER] Modpack nainstalován, kontroluji aktualizace...');
@@ -212,17 +503,13 @@ async function handleLaunch() {
                 console.log('[LAUNCHER] Modpack byl aktualizován na novou verzi');
                 manifest = updateResult.manifest;
             } else {
-                // Načíst manifest z instalovaného modpacku
-                const installedPath = require('path').join(
-                    require('os').homedir(),
-                    '.void-craft-launcher',
-                    'minecraft',
-                    '.installed',
-                    `${selectedModpack}.json`
+                // Načíst manifest z modpack složky
+                const manifestPath = require('path').join(
+                    modpackInstaller.currentModpackDir,
+                    'modpack-manifest.json'
                 );
-                if (require('fs').existsSync(installedPath)) {
-                    const installed = JSON.parse(require('fs').readFileSync(installedPath, 'utf8'));
-                    manifest = installed.manifest;
+                if (require('fs').existsSync(manifestPath)) {
+                    manifest = JSON.parse(require('fs').readFileSync(manifestPath, 'utf8'));
                 }
                 console.log('[LAUNCHER] Modpack je aktuální, používám stávající manifest');
             }
@@ -232,6 +519,12 @@ async function handleLaunch() {
         const mcVersion = manifest?.minecraft?.version || '1.20.1';
         console.log('[LAUNCHER] Minecraft verze:', mcVersion);
         console.log('[LAUNCHER] Spouštím Minecraft launcher...');
+
+        // Nastavit modpack složku pro minecraft launcher
+        const modpackDir = modpackInstaller.currentModpackDir;
+        console.log('[LAUNCHER] Modpack složka:', modpackDir);
+        minecraftLauncher.setModpackDir(modpackDir);
+
         updateProgress(50, '🎮 Připravuji Minecraft...');
         await minecraftLauncher.launch(currentUser, mcVersion, manifest, (progress, type) => {
             console.log(`[LAUNCHER] Minecraft: ${progress}% - ${type}`);

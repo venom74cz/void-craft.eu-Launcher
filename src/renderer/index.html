@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="cs">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Void-Craft Launcher</title>
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
     <div class="titlebar">
         <div class="titlebar-drag">
@@ -38,7 +40,10 @@
             </div>
 
             <div class="modpacks-section">
-                <h3>Modpacky</h3>
+                <div class="modpacks-header">
+                    <h3>Modpacky</h3>
+                    <button id="addModpackBtn" class="btn-add-modpack" title="Přidat vlastní modpack">+</button>
+                </div>
                 <div id="modpackList" class="modpack-list">
                     <div class="modpack-item active" data-id="1402056">
                         <div class="modpack-icon">📦</div>
@@ -46,7 +51,6 @@
                             <div class="modpack-name">Void Modpack</div>
                             <div class="modpack-version">Načítání...</div>
                         </div>
-                        <button class="btn-download-modpack" data-id="1402056" title="Stáhnout modpack">⬇️</button>
                     </div>
                 </div>
             </div>
@@ -59,7 +63,8 @@
                 <button id="launchBtn" class="btn-launch">SPUSTIT HRU</button>
                 <button id="diagnosticsBtn" class="btn-diagnostics">🔍 Test spuštění</button>
                 <button id="checkUpdateBtn" class="btn-check-update">Zkontrolovat aktualizace</button>
-                <div id="versionInfo" style="margin-top: 10px; text-align: center; font-size: 11px; color: #666;">Načítám...</div>
+                <div id="versionInfo" style="margin-top: 10px; text-align: center; font-size: 11px; color: #666;">
+                    Načítám...</div>
             </div>
         </div>
 
@@ -69,6 +74,87 @@
         </div>
     </div>
 
+    <!-- Add Modpack Modal -->
+    <div id="addModpackModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h2>➕ Přidat modpack</h2>
+                <button class="modal-close" id="closeAddModpackModal">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="setting-item">
+                    <label>CurseForge Project ID</label>
+                    <input type="text" id="customModpackId" placeholder="např. 1402056">
+                    <p style="font-size: 11px; color: #64748b; margin-top: 8px;">
+                        Najdeš ho v URL modpacku na CurseForge:<br>
+                        curseforge.com/minecraft/modpacks/[jmeno]/<strong style="color: #67e8f9;">PROJECT_ID</strong>
+                    </p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-save" id="addModpackConfirmBtn">➕ Přidat</button>
+                <button class="btn-cancel" id="cancelAddModpackBtn">❌ Zrušit</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content settings-modal">
+            <div class="modal-header">
+                <h2>⚙️ Nastavení</h2>
+                <button class="modal-close" id="closeSettingsModal">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="setting-group">
+                    <h3>🎮 Herní nastavení</h3>
+                    <div class="setting-item">
+                        <label>Alokovaná RAM (GB)</label>
+                        <div class="ram-control">
+                            <input type="range" id="ramSlider" min="2" max="16" step="0.5" value="12">
+                            <input type="number" id="ramInput" min="2" max="16" step="0.5" value="12">
+                            <span id="ramMaxInfo"></span>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <label>Rozlišení okna</label>
+                        <select id="resolution">
+                            <option value="854x480">854x480</option>
+                            <option value="1280x720">1280x720</option>
+                            <option value="1920x1080" selected>1920x1080</option>
+                            <option value="2560x1440">2560x1440</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <h3>☕ Java nastavení</h3>
+                    <div class="setting-item">
+                        <label>Cesta k Java (prázdné = auto)</label>
+                        <input type="text" id="javaPath" placeholder="C:\Program Files\Java\...">
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <h3>📁 Složky</h3>
+                    <div class="setting-item">
+                        <label>Minecraft složka</label>
+                        <input type="text" id="minecraftDir" readonly>
+                    </div>
+                    <div class="setting-item">
+                        <label>Logy</label>
+                        <input type="text" id="logsDir" readonly>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-save" id="saveSettingsBtn">💾 Uložit nastavení</button>
+                <button class="btn-cancel" id="cancelSettingsBtn">❌ Zavřít</button>
+            </div>
+        </div>
+    </div>
+
     <script src="renderer.js"></script>
 </body>
+
 </html>

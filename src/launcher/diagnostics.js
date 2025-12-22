@@ -7,7 +7,12 @@ const javaManager = require('./java-manager');
 
 class Diagnostics {
     constructor() {
-        this.gameDir = path.join(os.homedir(), '.void-craft-launcher', 'minecraft');
+        this.baseDir = path.join(os.homedir(), '.void-craft-launcher');
+        this.gameDir = null; // Set per modpack
+    }
+
+    setModpackDir(modpackDir) {
+        this.gameDir = modpackDir;
     }
 
     async runFullDiagnostics(modpackId, onProgress) {

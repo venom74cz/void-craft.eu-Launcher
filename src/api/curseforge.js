@@ -64,41 +64,68 @@ class CurseForgeAPI {
         }
     }
 
+    // BATCH METHODS - much faster for many mods
+    async getMods(modIds) {
+        try {
+            // CurseForge API supports up to 50 mods per request
+            const response = await this.client.post('/mods', {
+                modIds: modIds
+            });
+            return response.data.data;
+        } catch (error) {
+            console.error('Chyba při batch načítání modů:', error);
+            throw error;
+        }
+    }
+
+    async getModFiles(fileRequests) {
+        // fileRequests is array of { modId, fileId }
+        try {
+            const response = await this.client.post('/mods/files', {
+                fileIds: fileRequests.map(f => f.fileId)
+            });
+            return response.data.data;
+        } catch (error) {
+            console.error('Chyba při batch načítání souborů:', error);
+            throw error;
+        }
+    }
+
     async downloadFile(downloadUrl, outputPath, onProgress) {
         try {
             const fs = require('fs');
             const https = require('https');
             const http = require('http');
             const url = require('url');
-            
+
             return new Promise((resolve, reject) => {
                 const doDownload = (downloadUrl, redirectCount = 0) => {
                     if (redirectCount > 5) {
                         reject(new Error('Příliš mnoho redirectů'));
                         return;
                     }
-                    
+
                     const parsedUrl = url.parse(downloadUrl);
                     const protocol = parsedUrl.protocol === 'https:' ? https : http;
-                    
+
                     const request = protocol.get(downloadUrl, (response) => {
                         // Následovat redirecty
                         if (response.statusCode === 301 || response.statusCode === 302 || response.statusCode === 307 || response.statusCode === 308) {
                             doDownload(response.headers.location, redirectCount + 1);
                             return;
                         }
-                        
+
                         if (response.statusCode !== 200) {
                             reject(new Error(`Chyba stahování: ${response.statusCode}`));
                             return;
                         }
-                    
+
                         const totalLength = parseInt(response.headers['content-length'], 10);
                         let downloaded = 0;
                         const startTime = Date.now();
-                        
+
                         const writer = fs.createWriteStream(outputPath);
-                        
+
                         response.on('data', (chunk) => {
                             downloaded += chunk.length;
                             if (onProgress && totalLength) {
@@ -108,26 +135,26 @@ class CurseForgeAPI {
                                 onProgress(progress, speed, downloaded, totalLength);
                             }
                         });
-                        
+
                         response.pipe(writer);
-                        
+
                         writer.on('finish', () => {
                             writer.close();
                             resolve();
                         });
-                        
+
                         writer.on('error', (err) => {
-                            fs.unlink(outputPath, () => {});
+                            fs.unlink(outputPath, () => { });
                             reject(err);
                         });
                     });
-                    
+
                     request.on('error', (err) => {
-                        fs.unlink(outputPath, () => {});
+                        fs.unlink(outputPath, () => { });
                         reject(err);
                     });
                 };
-                
+
                 doDownload(downloadUrl);
             });
         } catch (error) {

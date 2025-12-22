@@ -38,7 +38,7 @@ function createWindow() {
       contextIsolation: false,
       webviewTag: true
     },
-  icon: path.join(__dirname, '../../assets/VOID-CRAFT.ico')
+    icon: path.join(__dirname, '../../assets/VOID-CRAFT.ico')
   });
 
   // Přesměrování console.log z renderer do main (CMD)
@@ -57,7 +57,7 @@ function createWindow() {
   const fs = require('fs');
   const os = require('os');
   const accountPath = path.join(os.homedir(), '.void-craft-launcher', 'account.json');
-  
+
   if (fs.existsSync(accountPath)) {
     // Uživatel je přihlášen - načíst hlavní aplikaci
     mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
@@ -65,7 +65,7 @@ function createWindow() {
     // Uživatel není přihlášen - načíst přihlašovací stránku
     mainWindow.loadFile(path.join(__dirname, '../renderer/login.html'));
   }
-  
+
   mainWindow.setMenuBarVisibility(false);
 
   // Zkontrolovat aktualizace po 3 sekundách
@@ -82,32 +82,13 @@ app.whenReady().then(() => {
   } catch (error) {
     console.log('@electron/remote není dostupný:', error.message);
   }
-  
-  // Přesunout .zip z mods/ do shaderpacks/ při každém spuštění
-  const fs = require('fs');
-  const os = require('os');
-  const modsDir = path.join(os.homedir(), '.void-craft-launcher', 'minecraft', 'mods');
-  const shaderpacksDir = path.join(os.homedir(), '.void-craft-launcher', 'minecraft', 'shaderpacks');
-  
-  if (!fs.existsSync(shaderpacksDir)) {
-    fs.mkdirSync(shaderpacksDir, { recursive: true });
-  }
-  
-  if (fs.existsSync(modsDir)) {
-    const files = fs.readdirSync(modsDir);
-    for (const file of files) {
-      if (file.toLowerCase().endsWith('.zip')) {
-        const oldPath = path.join(modsDir, file);
-        const newPath = path.join(shaderpacksDir, file);
-        console.log(`[STARTUP] Přesouvám .zip z mods/ do shaderpacks/: ${file}`);
-        fs.renameSync(oldPath, newPath);
-      }
-    }
-  }
-  
+
+
+  // .zip soubory jsou nyní přesouvány v modpack-installer.js per-modpack
+
   setupIPC();
   createWindow();
-  
+
   // IPC pro manuální kontrolu aktualizací
   ipcMain.on('check-for-updates', () => {
     console.log('[MAIN] Manuální kontrola aktualizací...');

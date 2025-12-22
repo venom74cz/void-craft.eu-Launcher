@@ -6,13 +6,38 @@ const AdmZip = require('adm-zip');
 
 class ModpackInstaller {
     constructor() {
-        this.minecraftDir = path.join(os.homedir(), '.void-craft-launcher', 'minecraft');
-        this.tempDir = path.join(os.homedir(), '.void-craft-launcher', 'temp');
+        this.baseDir = path.join(os.homedir(), '.void-craft-launcher');
+        this.modpacksDir = path.join(this.baseDir, 'modpacks');
+        this.tempDir = path.join(this.baseDir, 'temp');
+        this.currentModpackDir = null; // Set per modpack
+        this.overrideFiles = new Set();
         this.ensureDirectories();
     }
 
+    setModpackDir(modpackName) {
+        const safeName = this.sanitizeFolderName(modpackName);
+        this.currentModpackDir = path.join(this.modpacksDir, safeName);
+        if (!fs.existsSync(this.currentModpackDir)) {
+            fs.mkdirSync(this.currentModpackDir, { recursive: true });
+        }
+        return this.currentModpackDir;
+    }
+
+    getModpackDir(modpackName) {
+        const safeName = this.sanitizeFolderName(modpackName);
+        return path.join(this.modpacksDir, safeName);
+    }
+
+    sanitizeFolderName(name) {
+        // Remove invalid filesystem characters, replace spaces with underscores
+        return String(name)
+            .replace(/[<>:"/\\|?*]/g, '')
+            .replace(/\s+/g, '_')
+            .substring(0, 50); // Max 50 chars
+    }
+
     ensureDirectories() {
-        [this.minecraftDir, this.tempDir].forEach(dir => {
+        [this.modpacksDir, this.tempDir].forEach(dir => {
             if (!fs.existsSync(dir)) {
                 fs.mkdirSync(dir, { recursive: true });
             }
@@ -23,6 +48,18 @@ class ModpackInstaller {
         try {
             console.log('[MODPACK] ========== INSTALACE MODPACKU ==========');
             console.log('[MODPACK] Modpack ID:', modpackId);
+
+            onProgress(5, 'Načítám informace o modpacku...');
+
+            // Získat jméno modpacku pro složku
+            const modpackInfo = await curseforge.getModpack(modpackId);
+            const modpackName = modpackInfo.name;
+            console.log('[MODPACK] Modpack jméno:', modpackName);
+
+            // Nastavit modpack-specifickou složku podle jména
+            const modpackDir = this.setModpackDir(modpackName);
+            console.log('[MODPACK] Modpack složka:', modpackDir);
+
             onProgress(10, 'Načítám informace o modpacku...');
             const latestFile = await curseforge.getLatestFile(modpackId);
             console.log('[MODPACK] Nejnovější soubor:', latestFile.displayName || latestFile.fileName);
@@ -59,6 +96,9 @@ class ModpackInstaller {
             await this.downloadMods(manifest, onProgress);
             console.log('[MODPACK] Všechny mody staženy');
 
+            // Uložit jako nainstalovaný
+            this.markAsInstalled(modpackId, modpackName, manifest, latestFile.id);
+
             onProgress(95, 'Instalace dokončena!');
 
             // Cleanup
@@ -78,15 +118,27 @@ class ModpackInstaller {
         const zip = new AdmZip(zipPath);
         zip.extractAllTo(this.tempDir, true);
 
+        // Vyčistit seznam override souborů
+        this.overrideFiles.clear();
+
         // Zkopírovat overrides do Minecraft složky
         const overridesPath = path.join(this.tempDir, 'overrides');
         if (fs.existsSync(overridesPath)) {
             console.log('[MODPACK] Kopíruji overrides do Minecraft složky...');
-            this.copyRecursive(overridesPath, this.minecraftDir);
+            this.copyRecursive(overridesPath, this.currentModpackDir, true);
         }
+
+        // Zkusit i client-overrides (některé modpacky používají tento formát)
+        const clientOverridesPath = path.join(this.tempDir, 'client-overrides');
+        if (fs.existsSync(clientOverridesPath)) {
+            console.log('[MODPACK] Kopíruji client-overrides do Minecraft složky...');
+            this.copyRecursive(clientOverridesPath, this.currentModpackDir, true);
+        }
+
+        console.log(`[MODPACK] Zkopírováno ${this.overrideFiles.size} souborů z overrides`);
     }
 
-    copyRecursive(src, dest) {
+    copyRecursive(src, dest, trackOverrides = false) {
         if (!fs.existsSync(src)) return;
 
         const stats = fs.statSync(src);
@@ -98,16 +150,29 @@ class ModpackInstaller {
                 fs.mkdirSync(dest, { recursive: true });
             }
             fs.readdirSync(src).forEach(item => {
-                this.copyRecursive(path.join(src, item), path.join(dest, item));
+                this.copyRecursive(path.join(src, item), path.join(dest, item), trackOverrides);
             });
         } else {
+            const fileName = path.basename(dest);
+
+            // Nepřepisovat options.txt pokud již existuje (zachovat nastavení hráče)
+            if (fileName === 'options.txt' && fs.existsSync(dest)) {
+                console.log(`[MODPACK] Přeskakuji ${fileName} (zachovávám nastavení hráče)`);
+                return;
+            }
+
             const destDir = path.dirname(dest);
             if (!fs.existsSync(destDir)) {
                 console.log(`[MODPACK] Vytvářím složku: ${destDir}`)
                 fs.mkdirSync(destDir, { recursive: true });
             }
-            console.log(`[MODPACK] Kopíruji soubor: ${path.basename(src)} -> ${dest}`)
+            console.log(`[MODPACK] Kopíruji soubor: ${fileName} -> ${dest}`)
             fs.copyFileSync(src, dest);
+
+            // Track override files to prevent them from being deleted during cleanup
+            if (trackOverrides) {
+                this.overrideFiles.add(fileName);
+            }
         }
     }
 
@@ -122,9 +187,9 @@ class ModpackInstaller {
     async downloadMods(manifest, onProgress) {
         if (!manifest || !manifest.files) return;
 
-        const modsDir = path.join(this.minecraftDir, 'mods');
-        const resourcepacksDir = path.join(this.minecraftDir, 'resourcepacks');
-        const shaderpacksDir = path.join(this.minecraftDir, 'shaderpacks');
+        const modsDir = path.join(this.currentModpackDir, 'mods');
+        const resourcepacksDir = path.join(this.currentModpackDir, 'resourcepacks');
+        const shaderpacksDir = path.join(this.currentModpackDir, 'shaderpacks');
 
         // Vytvořit složky
         [modsDir, resourcepacksDir, shaderpacksDir].forEach(dir => {
@@ -146,8 +211,8 @@ class ModpackInstaller {
             }
         }
 
-        // KROK 1: Získat seznam VŠECH očekávaných souborů z manifestu
-        console.log(`[MODPACK] Získávám informace o ${manifest.files.length} souborech z manifestu...`);
+        // KROK 1: Získat seznam VŠECH očekávaných souborů z manifestu - RYCHLE pomocí batch API
+        console.log(`[MODPACK] Získávám informace o ${manifest.files.length} souborech z manifestu (batch mode)...`);
         if (onProgress) onProgress(60, 'Načítám seznam modů z modpacku...');
 
         const expectedFiles = {
@@ -156,37 +221,90 @@ class ModpackInstaller {
             shaderpacks: new Map()
         };
 
-        const checkBatchSize = 10;
-        for (let i = 0; i < manifest.files.length; i += checkBatchSize) {
-            const batch = manifest.files.slice(i, i + checkBatchSize);
-            const progress = 60 + Math.round((i / manifest.files.length) * 5);
-            if (onProgress) onProgress(progress, `Kontroluji manifest ${i}/${manifest.files.length}...`);
+        // Batch fetch all mod infos (max 50 per request)
+        const allModIds = manifest.files.map(m => m.projectID);
+        const allFileIds = manifest.files.map(m => ({ modId: m.projectID, fileId: m.fileID }));
 
-            await Promise.all(batch.map(async (mod) => {
-                try {
-                    const modInfo = await curseforge.getMod(mod.projectID);
-                    const modFile = await curseforge.getModFile(mod.projectID, mod.fileID);
+        const modInfoMap = new Map(); // projectID -> modInfo
+        const fileInfoMap = new Map(); // fileId -> fileInfo
 
-                    // Určit cílovou složku podle kategorie
-                    let targetDir = modsDir;
-                    let fileType = 'Mod';
-                    let mapKey = 'mods';
+        // Fetch mod infos in batches of 50
+        console.log('[MODPACK] ⚡ Batch načítání informací o modech...');
+        const batchSize = 50;
+        for (let i = 0; i < allModIds.length; i += batchSize) {
+            const batchIds = allModIds.slice(i, i + batchSize);
+            const progress = 60 + Math.round((i / allModIds.length) * 2);
+            if (onProgress) onProgress(progress, `Načítám info o modech ${i}/${allModIds.length}...`);
 
-                    if (modInfo.classId === 12) {
-                        targetDir = resourcepacksDir;
-                        fileType = 'Resource Pack';
-                        mapKey = 'resourcepacks';
-                    } else if (modInfo.classId === 4546) {
-                        targetDir = shaderpacksDir;
-                        fileType = 'Shader Pack';
-                        mapKey = 'shaderpacks';
+            try {
+                const mods = await curseforge.getMods(batchIds);
+                mods.forEach(mod => modInfoMap.set(mod.id, mod));
+            } catch (error) {
+                console.error('[MODPACK] Chyba při batch načítání modů, zkouším jednotlivě:', error.message);
+                // Fallback to individual calls if batch fails
+                for (const id of batchIds) {
+                    try {
+                        const mod = await curseforge.getMod(id);
+                        modInfoMap.set(mod.id, mod);
+                    } catch (e) {
+                        console.error(`[MODPACK] Nepodařilo se načíst mod ${id}`);
                     }
-
-                    expectedFiles[mapKey].set(modFile.fileName, { mod, modFile, targetDir, fileType });
-                } catch (error) {
-                    console.error(`[MODPACK] Chyba při získávání info o ${mod.projectID}:`, error.message);
                 }
-            }));
+            }
+        }
+
+        // Fetch file infos in batches
+        console.log('[MODPACK] ⚡ Batch načítání informací o souborech...');
+        for (let i = 0; i < allFileIds.length; i += batchSize) {
+            const batchFiles = allFileIds.slice(i, i + batchSize);
+            const progress = 62 + Math.round((i / allFileIds.length) * 3);
+            if (onProgress) onProgress(progress, `Načítám info o souborech ${i}/${allFileIds.length}...`);
+
+            try {
+                const files = await curseforge.getModFiles(batchFiles);
+                files.forEach(file => fileInfoMap.set(file.id, file));
+            } catch (error) {
+                console.error('[MODPACK] Chyba při batch načítání souborů, zkouším jednotlivě:', error.message);
+                // Fallback to individual calls if batch fails
+                for (const { modId, fileId } of batchFiles) {
+                    try {
+                        const file = await curseforge.getModFile(modId, fileId);
+                        fileInfoMap.set(file.id, file);
+                    } catch (e) {
+                        console.error(`[MODPACK] Nepodařilo se načíst soubor ${fileId}`);
+                    }
+                }
+            }
+        }
+
+        console.log(`[MODPACK] ✅ Načteno ${modInfoMap.size} modů a ${fileInfoMap.size} souborů`);
+
+        // Build expected files map
+        for (const mod of manifest.files) {
+            const modInfo = modInfoMap.get(mod.projectID);
+            const modFile = fileInfoMap.get(mod.fileID);
+
+            if (!modInfo || !modFile) {
+                console.warn(`[MODPACK] ⚠️ Chybí info pro mod ${mod.projectID}/${mod.fileID}`);
+                continue;
+            }
+
+            // Určit cílovou složku podle kategorie
+            let targetDir = modsDir;
+            let fileType = 'Mod';
+            let mapKey = 'mods';
+
+            if (modInfo.classId === 12) {
+                targetDir = resourcepacksDir;
+                fileType = 'Resource Pack';
+                mapKey = 'resourcepacks';
+            } else if (modInfo.classId === 4546) {
+                targetDir = shaderpacksDir;
+                fileType = 'Shader Pack';
+                mapKey = 'shaderpacks';
+            }
+
+            expectedFiles[mapKey].set(modFile.fileName, { mod, modFile, targetDir, fileType });
         }
 
         console.log(`[MODPACK] Očekávané soubory - Mods: ${expectedFiles.mods.size}, Resource Packs: ${expectedFiles.resourcepacks.size}, Shaders: ${expectedFiles.shaderpacks.size}`);
@@ -200,6 +318,12 @@ class ModpackInstaller {
             for (const file of files) {
                 // Přeskočit .zip soubory v mods složce (budou přesunuty do shaderpacks)
                 if (dir === modsDir && file.toLowerCase().endsWith('.zip')) continue;
+
+                // Přeskočit soubory z overrides - ty nesmí být smazány!
+                if (this.overrideFiles.has(file)) {
+                    console.log(`[MODPACK] ⏭️ Přeskakuji override soubor: ${file}`);
+                    continue;
+                }
 
                 // Pokud soubor NENÍ v expectedFiles, smazat ho
                 if (!expectedMap.has(file)) {
@@ -293,29 +417,74 @@ class ModpackInstaller {
         }
     }
 
+    // Central registry of installed modpacks (ID -> name mapping)
+    getRegistryPath() {
+        return path.join(this.baseDir, 'installed-modpacks.json');
+    }
+
+    loadRegistry() {
+        const regPath = this.getRegistryPath();
+        if (fs.existsSync(regPath)) {
+            try {
+                return JSON.parse(fs.readFileSync(regPath, 'utf8'));
+            } catch (e) {
+                return {};
+            }
+        }
+        return {};
+    }
+
+    saveRegistry(registry) {
+        fs.writeFileSync(this.getRegistryPath(), JSON.stringify(registry, null, 2));
+    }
+
     isModpackInstalled(modpackId) {
-        const installedPath = path.join(this.minecraftDir, '.installed', `${modpackId}.json`);
-        return fs.existsSync(installedPath);
+        const registry = this.loadRegistry();
+        return !!registry[String(modpackId)];
+    }
+
+    getInstalledModpackName(modpackId) {
+        const registry = this.loadRegistry();
+        const entry = registry[String(modpackId)];
+        return entry ? entry.name : null;
     }
 
     getInstalledFileId(modpackId) {
-        const installedPath = path.join(this.minecraftDir, '.installed', `${modpackId}.json`);
-        if (fs.existsSync(installedPath)) {
-            try {
-                const installed = JSON.parse(fs.readFileSync(installedPath, 'utf8'));
-                return installed.fileId || null;
-            } catch (e) {
-                console.error('[MODPACK] Chyba při čtení instalovaného souboru:', e);
-                return null;
-            }
-        }
-        return null;
+        const registry = this.loadRegistry();
+        const entry = registry[String(modpackId)];
+        return entry ? entry.fileId : null;
+    }
+
+    markAsInstalled(modpackId, modpackName, manifest, fileId = null) {
+        const registry = this.loadRegistry();
+        registry[String(modpackId)] = {
+            id: modpackId,
+            name: modpackName,
+            folderName: this.sanitizeFolderName(modpackName),
+            fileId: fileId,
+            installedAt: new Date().toISOString(),
+            mcVersion: manifest?.minecraft?.version
+        };
+        this.saveRegistry(registry);
+
+        // Also save manifest in modpack folder
+        const manifestPath = path.join(this.currentModpackDir, 'modpack-manifest.json');
+        fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
     }
 
     async checkForModpackUpdate(modpackId, onProgress) {
         try {
             console.log('[MODPACK] ========== KONTROLA A SYNCHRONIZACE MODPACKU ==========');
             console.log('[MODPACK] Modpack ID:', modpackId);
+
+            // Získat jméno pro složku z registry nebo z API
+            let modpackName = this.getInstalledModpackName(modpackId);
+            if (!modpackName) {
+                const modpackInfo = await curseforge.getModpack(modpackId);
+                modpackName = modpackInfo.name;
+            }
+            this.setModpackDir(modpackName);
+            console.log('[MODPACK] Modpack složka:', this.currentModpackDir);
 
             // Získat nejnovější verzi z CurseForge
             if (onProgress) onProgress(0, 'Kontroluji nejnovější verzi modpacku...');
@@ -331,7 +500,6 @@ class ModpackInstaller {
             console.log('[MODPACK] 🔄 Stahuji aktuální modpack pro synchronizaci modů...');
             if (onProgress) onProgress(5, 'Stahuji aktuální modpack...');
 
-            // Stáhnout nejnovější verzi
             const zipPath = path.join(this.tempDir, `modpack-${modpackId}.zip`);
 
             await curseforge.downloadFile(latestFile.downloadUrl, zipPath, (progress, speed) => {
@@ -360,7 +528,7 @@ class ModpackInstaller {
                 console.log('[MODPACK] ✅ Všechny mody synchronizovány');
 
                 // Uložit verzi jako nainstalovanou
-                this.markAsInstalled(modpackId, manifest, latestFileId);
+                this.markAsInstalled(modpackId, modpackName, manifest, latestFileId);
             }
 
             // Cleanup
@@ -370,23 +538,12 @@ class ModpackInstaller {
 
             const needsUpdate = installedFileId !== latestFileId;
             console.log('[MODPACK] ✅ Synchronizace dokončena!' + (needsUpdate ? ' (nová verze)' : ' (bez změny verze)'));
-            return { needsUpdate, manifest };
 
+            return { needsUpdate, manifest };
         } catch (error) {
             console.error('[MODPACK] Chyba při synchronizaci modpacku:', error);
             throw error;
         }
-    }
-
-    markAsInstalled(modpackId, manifest, fileId = null) {
-        const installedDir = path.join(this.minecraftDir, '.installed');
-        if (!fs.existsSync(installedDir)) {
-            fs.mkdirSync(installedDir, { recursive: true });
-        }
-        fs.writeFileSync(
-            path.join(installedDir, `${modpackId}.json`),
-            JSON.stringify({ modpackId, fileId, installedAt: new Date(), manifest }, null, 2)
-        );
     }
 }
 
