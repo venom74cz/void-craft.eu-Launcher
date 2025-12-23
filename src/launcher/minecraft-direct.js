@@ -105,7 +105,7 @@ class MinecraftDirect {
                         const replaced = arg
                             .replace(/\$\{natives_directory\}/g, path.join(this.gameDir, 'natives', versionName))
                             .replace(/\$\{launcher_name\}/g, 'void-craft-launcher')
-                            .replace(/\$\{launcher_version\}/g, '0.3.6')
+                            .replace(/\$\{launcher_version\}/g, '2.4.2')
                             .replace(/\$\{classpath\}/g, '')
                             .replace(/\$\{classpath_separator\}/g, path.delimiter)
                             .replace(/\$\{library_directory\}/g, path.join(this.gameDir, 'libraries'))
@@ -348,7 +348,7 @@ class MinecraftDirect {
             '${classpath_separator}': path.delimiter,
             '${natives_directory}': path.join(this.gameDir, 'natives', versionName),
             '${launcher_name}': 'void-craft-launcher',
-            '${launcher_version}': '0.4.2',
+            '${launcher_version}': '2.4.2',
             '${clientid}': 'void-craft',
             '${user_properties}': '{}'
         };

@@ -72,7 +72,7 @@ class CrashReporter {
                     { name: '💻 Systém', value: `${os.platform()} ${os.arch()}`, inline: true },
                     { name: '🕐 Čas', value: new Date().toLocaleString('cs-CZ'), inline: true }
                 ],
-                footer: { text: 'Void-Craft Launcher v0.2.2' }
+                footer: { text: 'Void-Craft Launcher v2.4.2' }
             };
 
             await axios.post(this.webhookUrl, { embeds: [embed] });
@@ -192,10 +192,10 @@ class CrashReporter {
             console.log('[CRASH-REPORTER] Game crash report odeslán s přílohami');
         } catch (err) {
             console.error('[CRASH-REPORTER] Chyba při odesílání game crash reportu:', err);
-            // Fallback na standardní report bez příloh
+            // Fallback na standardní report bez příloh, ale s důvodem selhání
             await this.reportCrash(
-                new Error(`Minecraft crash - Exit code: ${exitCode}`),
-                'Game Crash'
+                new Error(`Minecraft crash - Exit code: ${exitCode}\n\nCrash Reporter Failure: ${err.message}`),
+                'Game Crash (Reporter Failed)'
             );
         }
     }
