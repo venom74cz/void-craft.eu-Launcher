@@ -166,6 +166,29 @@ class ModpackInstaller {
                 console.log(`[MODPACK] Vytvářím složku: ${destDir}`)
                 fs.mkdirSync(destDir, { recursive: true });
             }
+
+            // Ochrana uživatelských dat
+            if (this.currentModpackDir) {
+                // 1. servers.dat se nepřepisuje, pokud existuje
+                if (fileName === 'servers.dat' && fs.existsSync(dest)) {
+                    console.log(`[MODPACK] Přeskakuji servers.dat (již existuje)`);
+                    return;
+                }
+
+                // 2. config soubory se nepřepisují, pokud existuje config složka
+                const relativeDest = path.relative(this.currentModpackDir, dest);
+                // Detekce jestli jde o soubor v config složce
+                const isConfig = relativeDest.startsWith('config' + path.sep) || relativeDest === 'config';
+
+                if (isConfig) {
+                    const configDir = path.join(this.currentModpackDir, 'config');
+                    if (fs.existsSync(configDir)) {
+                        console.log(`[MODPACK] Přeskakuji config (existuje config složka): ${fileName}`);
+                        return;
+                    }
+                }
+            }
+
             console.log(`[MODPACK] Kopíruji soubor: ${fileName} -> ${dest}`)
             fs.copyFileSync(src, dest);
 

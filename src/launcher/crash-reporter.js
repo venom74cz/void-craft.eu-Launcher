@@ -8,10 +8,35 @@ class CrashReporter {
         this.webhookUrl = 'https://discord.com/api/webhooks/1449123709003632791/Yf3bHPWvLshCo1H7KCV3dTZpM0DNJoOPgFG67CRYuWLKFTMkU5Q394-yuSM-7dIn5BWZ';
     }
 
-    async reportCrash(error, context = '') {
+    async reportCrash(error, context = '', forceReport = false) {
         try {
+            const errorMessage = error.message || String(error);
+
+            // 1. Filtrace ignorovaných chyb (pokud není vynuceno)
+            if (!forceReport) {
+                const ignoredPatterns = [
+                    'ENOTFOUND',
+                    'ETIMEDOUT',
+                    'ECONNRESET',
+                    'EACCES',
+                    'EPERM',
+                    'net::ERR_INTERNET_DISCONNECTED',
+                    'net::ERR_CONNECTION_RESET',
+                    'User cancelled',
+                    'zrušeno uživatelem',
+                    'Unexpected token', // Často API chyby
+                    '401 Unauthorized',
+                    '503 Service Unavailable'
+                ];
+
+                if (ignoredPatterns.some(pattern => errorMessage.includes(pattern))) {
+                    console.log('[CRASH-REPORTER] Chyba ignorována (běžná chyba):', errorMessage);
+                    return;
+                }
+            }
+
             const crashData = {
-                error: error.message || String(error),
+                error: errorMessage,
                 stack: error.stack || '',
                 context: context,
                 timestamp: new Date().toISOString(),
@@ -53,9 +78,40 @@ class CrashReporter {
                 });
             }
 
-            await axios.post(this.webhookUrl, {
-                embeds: [embed]
-            });
+            // 2. Připojení log souboru
+            let logContent = null;
+            let logName = 'launcher-log.txt';
+            try {
+                const date = new Date();
+                const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                const logPath = path.join(os.homedir(), '.void-craft-launcher', 'logs', `launcher-${dateStr}.log`);
+
+                if (fs.existsSync(logPath)) {
+                    logContent = fs.readFileSync(logPath, 'utf8');
+                    embed.fields.push({
+                        name: '📎 Příloha',
+                        value: `📄 Přiložen log: ${path.basename(logPath)}`,
+                        inline: false
+                    });
+                }
+            } catch (e) {
+                console.error('[CRASH-REPORTER] Nepodařilo se načíst log:', e);
+            }
+
+            // Odeslání (Nativní FormData pro Electron renderer)
+            if (logContent) {
+                const form = new FormData();
+                form.append('payload_json', JSON.stringify({ embeds: [embed] }));
+
+                const blob = new Blob([logContent], { type: 'text/plain' });
+                form.append('file', blob, 'launcher.log');
+
+                await axios.post(this.webhookUrl, form);
+            } else {
+                await axios.post(this.webhookUrl, {
+                    embeds: [embed]
+                });
+            }
 
             console.log('[CRASH-REPORTER] Crash report odeslán');
         } catch (err) {
@@ -83,7 +139,7 @@ class CrashReporter {
 
     async reportGameCrash(exitCode, stderrOutput, gameDir) {
         try {
-            const FormData = require('form-data');
+            // Použít nativní FormData
             const form = new FormData();
 
             // Načíst info o uživateli
@@ -171,31 +227,26 @@ class CrashReporter {
 
             // Přidat crash report jako soubor
             if (crashReportContent) {
-                form.append('file1', Buffer.from(crashReportContent, 'utf8'), {
-                    filename: crashReportName,
-                    contentType: 'text/plain'
-                });
+                const blob = new Blob([crashReportContent], { type: 'text/plain' });
+                form.append('file1', blob, crashReportName);
             }
 
             // Přidat latest.log jako soubor
             if (latestLogContent) {
-                form.append('file2', Buffer.from(latestLogContent, 'utf8'), {
-                    filename: 'latest.log',
-                    contentType: 'text/plain'
-                });
+                const blob = new Blob([latestLogContent], { type: 'text/plain' });
+                form.append('file2', blob, 'latest.log');
             }
 
-            await axios.post(this.webhookUrl, form, {
-                headers: form.getHeaders()
-            });
+            await axios.post(this.webhookUrl, form);
 
             console.log('[CRASH-REPORTER] Game crash report odeslán s přílohami');
         } catch (err) {
             console.error('[CRASH-REPORTER] Chyba při odesílání game crash reportu:', err);
-            // Fallback na standardní report bez příloh, ale s důvodem selhání
+            // Fallback na standardní report bez příloh
             await this.reportCrash(
                 new Error(`Minecraft crash - Exit code: ${exitCode}\n\nCrash Reporter Failure: ${err.message}`),
-                'Game Crash (Reporter Failed)'
+                'Game Crash (Reporter Failed)',
+                true // Force report
             );
         }
     }
