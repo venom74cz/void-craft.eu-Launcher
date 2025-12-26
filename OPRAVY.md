@@ -54,6 +54,14 @@ console.log('[LAUNCHER] Manifest načten, přeskakuji stahování modů (již na
 - Specifické hlášky pro různé typy chyb
 - Odkaz na složku s logy pro diagnostiku
 
+### 5. Oprava kopírování config a options souborů
+**Problém:** Při čisté instalaci se nezkopírovaly soubory ze složky `config` a `options.txt`.
+
+**Oprava:**
+- `src/launcher/modpack-installer.js` - opravena logika kontroly existence souborů v `copyRecursive()`
+- Nyní se správně kontroluje existence konkrétního souboru, ne celé složky
+- Umožňuje to správné zkopírování výchozí konfigurace při zachování uživatelských změn
+
 ## 🔍 Diagnostika problémů
 
 Pokud se hra nespustí, zkontroluj logy:
