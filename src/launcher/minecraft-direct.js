@@ -105,7 +105,7 @@ class MinecraftDirect {
                         const replaced = arg
                             .replace(/\$\{natives_directory\}/g, path.join(this.gameDir, 'natives', versionName))
                             .replace(/\$\{launcher_name\}/g, 'void-craft-launcher')
-                            .replace(/\$\{launcher_version\}/g, '2.4.5')
+                            .replace(/\$\{launcher_version\}/g, '2.4.6')
                             .replace(/\$\{classpath\}/g, '')
                             .replace(/\$\{classpath_separator\}/g, path.delimiter)
                             .replace(/\$\{library_directory\}/g, path.join(this.gameDir, 'libraries'))
@@ -164,9 +164,7 @@ class MinecraftDirect {
                 '-XX:G1HeapWastePercent=20',
                 '-XX:InitiatingHeapOccupancyPercent=10',
                 '-XX:G1RSetUpdatingPauseTimePercent=0',
-                '-XX:MaxTenuringThreshold=1',
-                '-XX:+UseLargePages',
-                '-XX:LargePageSizeInBytes=2m'
+                '-XX:MaxTenuringThreshold=1'
             ];
 
             for (const flag of extraJvmFlags) {
@@ -182,11 +180,15 @@ class MinecraftDirect {
             if (minRam > maxRam) minRam = maxRam;
             console.log(`[MC-DIRECT] Alokace RAM: -Xms${minRam}G -Xmx${maxRam}G`);
 
+            const nativesDir = path.join(this.gameDir, 'natives', versionName);
             const javaArgs = [
                 `-Xmx${maxRam}G`,
                 `-Xms${minRam}G`,
                 ...jvmArgs,
-                `-Djava.library.path=${path.join(this.gameDir, 'natives', versionName)}`,
+                `-Djava.library.path=${nativesDir}`,
+                `-Djna.tmpdir=${nativesDir}`,
+                `-Dorg.lwjgl.system.SharedLibraryExtractPath=${nativesDir}`,
+                `-Dio.netty.native.workdir=${nativesDir}`,
                 '-cp',
                 classpath,
                 versionData.mainClass,
@@ -348,7 +350,7 @@ class MinecraftDirect {
             '${classpath_separator}': path.delimiter,
             '${natives_directory}': path.join(this.gameDir, 'natives', versionName),
             '${launcher_name}': 'void-craft-launcher',
-            '${launcher_version}': '2.4.5',
+            '${launcher_version}': '2.4.6',
             '${clientid}': 'void-craft',
             '${user_properties}': '{}'
         };

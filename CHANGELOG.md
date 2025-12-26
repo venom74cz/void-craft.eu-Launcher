@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.4.6] - 2025-12-27
+
+### ⚡ Vylepšení & Opravy
+
+-   **Stabilnější spouštění:** Sjednoceny JVM argumenty s CurseForge. Přidány definice cest pro nativní knihovny (`jna`, `lwjgl`, `netty`), což řeší problémy s "DLL not found".
+-   **Oprava pádů na Windows:** Odstraněn flag `-XX:+UseLargePages`, který způsoboval pády na systémech bez administrátorského nastavení "Lock pages in memory".
+-   **Oprava diagnostiky:** Opravena falešná hláška "Modpack není nainstalován" v diagnostickém testu.
+
 ## [2.4.5] - 2025-12-27
 
 ### ⚡ Vylepšení & Opravy

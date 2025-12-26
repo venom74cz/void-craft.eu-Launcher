@@ -5,6 +5,8 @@ const { exec } = require('child_process');
 const crashReporter = require('./crash-reporter');
 const javaManager = require('./java-manager');
 
+const modpackInstaller = require('./modpack-installer');
+
 class Diagnostics {
     constructor() {
         this.baseDir = path.join(os.homedir(), '.void-craft-launcher');
@@ -16,6 +18,7 @@ class Diagnostics {
     }
 
     async runFullDiagnostics(modpackId, onProgress) {
+        // ... (zbytek metody beze změny, jen kontext pro diff)
         const results = {
             java: { status: 'pending', message: '', autoFixed: false },
             ram: { status: 'pending', message: '', autoFixed: false },
@@ -24,25 +27,20 @@ class Diagnostics {
         };
 
         try {
-            // 1. Test Java
+            // ... (volání testů)
             if (onProgress) onProgress('Kontroluji Javu...');
             results.java = await this.checkJava();
 
-            // 2. Test RAM
             if (onProgress) onProgress('Kontroluji RAM...');
             results.ram = await this.checkRAM();
 
-            // 3. Test souborů
             if (onProgress) onProgress('Kontroluji soubory...');
             results.files = await this.checkFiles(modpackId);
 
-            // 4. Test sítě
             if (onProgress) onProgress('Kontroluji síť...');
             results.network = await this.checkNetwork();
 
-            // Odeslat výsledky na Discord
             await this.reportDiagnostics(results);
-
             return results;
         } catch (error) {
             console.error('[DIAGNOSTICS] Chyba při diagnostice:', error);
@@ -51,80 +49,29 @@ class Diagnostics {
         }
     }
 
+    // ... (checkJava a checkRAM beze změny)
     async checkJava() {
+        // ... (existující kód v souboru)
         try {
             const javaPath = await javaManager.getJavaPath();
-
-            if (!javaPath) {
-                return {
-                    status: 'error',
-                    message: 'Java nebyla nalezena ani stažena',
-                    autoFixed: false
-                };
-            }
-
+            if (!javaPath) return { status: 'error', message: 'Java nebyla nalezena ani stažena', autoFixed: false };
             const version = await javaManager.checkJavaVersion(javaPath);
-
-            if (version && version >= 21) {
-                return {
-                    status: 'ok',
-                    message: `Java ${version} nalezena`,
-                    autoFixed: false
-                };
-            } else if (version) {
-                return {
-                    status: 'warning',
-                    message: `Java ${version} je stará (požadováno 21+)`,
-                    autoFixed: false
-                };
-            } else {
-                return {
-                    status: 'error',
-                    message: 'Java nebyla nalezena',
-                    autoFixed: false
-                };
-            }
-        } catch (error) {
-            return {
-                status: 'error',
-                message: `Chyba: ${error.message}`,
-                autoFixed: false
-            };
-        }
+            if (version && version >= 21) return { status: 'ok', message: `Java ${version} nalezena`, autoFixed: false };
+            else if (version) return { status: 'warning', message: `Java ${version} je stará (požadováno 21+)`, autoFixed: false };
+            else return { status: 'error', message: 'Java nebyla nalezena', autoFixed: false };
+        } catch (error) { return { status: 'error', message: `Chyba: ${error.message}`, autoFixed: false }; }
     }
 
     async checkRAM() {
         try {
             const totalRAM = Math.round(os.totalmem() / 1024 / 1024 / 1024);
             const freeRAM = Math.round(os.freemem() / 1024 / 1024 / 1024);
-
-            if (totalRAM < 4) {
-                return {
-                    status: 'warning',
-                    message: `Málo RAM: ${totalRAM}GB celkem, ${freeRAM}GB volné (doporučeno min. 4GB)`,
-                    autoFixed: false
-                };
-            } else if (freeRAM < 2) {
-                return {
-                    status: 'warning',
-                    message: `Málo volné RAM: ${freeRAM}GB (doporučeno min. 2GB volné)`,
-                    autoFixed: false
-                };
-            } else {
-                return {
-                    status: 'ok',
-                    message: `RAM: ${totalRAM}GB celkem, ${freeRAM}GB volné`,
-                    autoFixed: false
-                };
-            }
-        } catch (error) {
-            return {
-                status: 'error',
-                message: `Chyba: ${error.message}`,
-                autoFixed: false
-            };
-        }
+            if (totalRAM < 4) return { status: 'warning', message: `Málo RAM: ${totalRAM}GB celkem, ${freeRAM}GB volné (doporučeno min. 4GB)`, autoFixed: false };
+            else if (freeRAM < 2) return { status: 'warning', message: `Málo volné RAM: ${freeRAM}GB (doporučeno min. 2GB volné)`, autoFixed: false };
+            else return { status: 'ok', message: `RAM: ${totalRAM}GB celkem, ${freeRAM}GB volné`, autoFixed: false };
+        } catch (error) { return { status: 'error', message: `Chyba: ${error.message}`, autoFixed: false }; }
     }
+
 
     async checkFiles(modpackId) {
         try {
@@ -139,23 +86,34 @@ class Diagnostics {
                 };
             }
 
-            const installedPath = path.join(gameDir, '.installed', `${modpackId}.json`);
-
-            if (!fs.existsSync(installedPath)) {
+            // NOVÁ LOGIKA: Použít modpackInstaller pro kontrolu
+            if (!modpackInstaller.isModpackInstalled(modpackId)) {
                 return {
                     status: 'warning',
-                    message: 'Modpack není nainstalován',
+                    message: 'Modpack není nainstalován (nebo je poškozený registr)',
                     autoFixed: false
                 };
             }
 
-            const installed = JSON.parse(fs.readFileSync(installedPath, 'utf8'));
-            const manifest = installed.manifest;
+            // Získat správnou cestu k manifestu
+            const modpackName = modpackInstaller.getInstalledModpackName(modpackId);
+            const installedModpackDir = modpackInstaller.getModpackDir(modpackName);
+            const manifestPath = path.join(installedModpackDir, 'modpack-manifest.json');
+
+            if (!fs.existsSync(manifestPath)) {
+                return {
+                    status: 'error',
+                    message: 'Chybí soubor modpack-manifest.json',
+                    autoFixed: false
+                };
+            }
+
+            const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
 
             if (!manifest) {
                 return {
                     status: 'error',
-                    message: 'Chybí manifest modpacku',
+                    message: 'Neplatný manifest modpacku',
                     autoFixed: false
                 };
             }
