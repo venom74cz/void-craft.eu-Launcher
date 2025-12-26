@@ -181,9 +181,8 @@ class ModpackInstaller {
                 const isConfig = relativeDest.startsWith('config' + path.sep) || relativeDest === 'config';
 
                 if (isConfig) {
-                    const configDir = path.join(this.currentModpackDir, 'config');
-                    if (fs.existsSync(configDir)) {
-                        console.log(`[MODPACK] Přeskakuji config (existuje config složka): ${fileName}`);
+                    if (fs.existsSync(dest)) {
+                        console.log(`[MODPACK] Přeskakuji config (soubor již existuje): ${fileName}`);
                         return;
                     }
                 }
