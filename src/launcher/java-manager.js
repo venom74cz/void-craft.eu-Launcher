@@ -269,11 +269,8 @@ class JavaManager {
         return new Promise((resolve) => {
             exec(`"${javaPath}" -version`, (error, stdout, stderr) => {
                 if (!error || stderr) {
-                    if (!stderr.includes('Temurin')) {
-                        console.warn('[JAVA] Není Adoptium/Temurin:', javaPath);
-                        resolve(null);
-                        return;
-                    }
+                    // Ignorujeme kontrolu vendora (Temurin), stačí jakákoliv validní Java
+                    // if (!stderr.includes('Temurin')) { ... }
 
                     const versionMatch = stderr.match(/version "(\d+)/);
                     if (versionMatch) {

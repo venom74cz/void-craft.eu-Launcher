@@ -370,7 +370,28 @@ class ModpackInstaller {
         for (const [mapKey, expectedMap] of Object.entries(expectedFiles)) {
             for (const [fileName, info] of expectedMap) {
                 const filePath = path.join(info.targetDir, fileName);
+                let shouldDownload = false;
+
                 if (!fs.existsSync(filePath)) {
+                    shouldDownload = true;
+                } else {
+                    // Check file integrity via size
+                    try {
+                        const stats = fs.statSync(filePath);
+                        // Only check if we have Expected Length from API
+                        if (info.modFile.fileLength && stats.size !== info.modFile.fileLength) {
+                            console.warn(`[MODPACK] ⚠️ Poškozený soubor detekován: ${fileName} (Má: ${stats.size}b, má mít: ${info.modFile.fileLength}b)`);
+                            shouldDownload = true;
+                            // Delete corrupt file immediately
+                            try { fs.unlinkSync(filePath); } catch (e) { }
+                        }
+                    } catch (e) {
+                        console.error(`[MODPACK] Chyba při kontrole souboru ${fileName}:`, e);
+                        shouldDownload = true;
+                    }
+                }
+
+                if (shouldDownload) {
                     filesToDownload.push(info);
                 }
             }
