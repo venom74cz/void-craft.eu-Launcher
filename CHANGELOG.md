@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.4.20] - 2025-12-27
+### Changed
+- Oprava Role ID pro Discord notifikace.
+
+## [2.4.19] - 2025-12-27
+### Changed
+- Oprava notifikace: Použití Role ID s spoiler tagem.
+
 ## [2.4.18] - 2025-12-27
 ### Changed
 - Úprava formátu notifikace: ||@VERIFIED|| (spoiler tag).
