@@ -1,5 +1,9 @@
 # Changelog
 
+## [2.5.3] - 2025-12-27
+### Added
+- **Verbose Logging:** Launcher nyní zapisuje detailní debug informace do `latest.log` (kontrola knihoven, pravidel, natives, celá spouštěcí classpath a argumenty). Toto pomůže při diagnostice problémů, kde launcher "mlčí" nebo crashne bez jasné příčiny.
+
 ## [2.5.2] - 2025-12-27
 ### Fixed
 - **Heap Corruption Fix (Exit Code 0xC0000374):** Odstraněny agresivní JVM optimalizace (`UseNUMA`, `UseCriticalJavaThreadPriority`, atd.), které způsobovaly pády hry na moderních grafických kartách při použití Iris/Sodium shaderů. Launcher nyní používá standardní, stabilní nastavení (stejné jako CurseForge).

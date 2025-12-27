@@ -106,27 +106,38 @@ class MinecraftDirect {
     isLibraryAllowed(lib) {
         // Pokud knihovna nemá rules, je povolena
         if (!lib.rules || lib.rules.length === 0) {
+            logger.debug(`[LIB-CHECK] ${lib.name} -> ALLOWED (no rules)`);
             return true;
         }
 
         // Zpracování rules podle Mojang specifikace
         let allowed = false; // Výchozí stav je "disallow" pokud existují rules
 
+        logger.debug(`[LIB-CHECK] Checking rules for ${lib.name}:`);
+
         for (const rule of lib.rules) {
             const action = rule.action === 'allow';
+            let ruleMatches = false;
 
             // Pokud rule nemá podmínky, aplikuje se vždy
             if (!rule.os) {
                 allowed = action;
+                ruleMatches = true;
+                logger.debug(`  - Rule (no os constraint) -> action: ${rule.action}, result: ${allowed}`);
                 continue;
             }
 
             // Pokud má OS podmínku, zkontrolovat shodu
             if (this.matchesOS(rule.os)) {
                 allowed = action;
+                ruleMatches = true;
+                logger.debug(`  - Rule (os matched: ${JSON.stringify(rule.os)}) -> action: ${rule.action}, result: ${allowed}`);
+            } else {
+                logger.debug(`  - Rule (os mismatch: ${JSON.stringify(rule.os)}) -> skipped`);
             }
         }
 
+        logger.debug(`[LIB-CHECK] Final decision for ${lib.name}: ${allowed ? 'ALLOWED' : 'DISALLOWED'}`);
         return allowed;
     }
 
@@ -312,6 +323,8 @@ class MinecraftDirect {
             }
 
             logger.log('[MC-DIRECT] Spouštím proces:', javaPath);
+            logger.debug('[MC-DIRECT] Full Java Arguments:\n' + javaArgs.join('\n'));
+            logger.debug('[MC-DIRECT] CWD:', this.gameDir);
 
             // 3. Zachycení chyb při spouštění procesu
             try {
@@ -389,14 +402,18 @@ class MinecraftDirect {
         const processLibraries = (libs) => {
             if (!libs) return;
             for (const lib of libs) {
+                logger.debug(`[CLASSPATH] Processing library: ${lib.name}`);
+
                 // === FIX #1: Kontrola library rules (jako PrismLauncher) ===
                 if (!this.isLibraryAllowed(lib)) {
                     logger.log(`[MC-DIRECT] Přeskakuji knihovnu (rules): ${lib.name}`);
+                    logger.debug(`[CLASSPATH] Skipped ${lib.name} due to rules.`);
                     continue;
                 }
 
                 // Přeskočit native knihovny - ty se zpracovávají v extractNatives
                 if (lib.natives) {
+                    logger.debug(`[CLASSPATH] Skipped ${lib.name} (is native).`);
                     continue;
                 }
 
@@ -426,12 +443,18 @@ class MinecraftDirect {
                     if (fs.existsSync(libPath)) {
                         if (!libraries.includes(libPath)) {
                             libraries.push(libPath);
+                            logger.debug(`[CLASSPATH] Added: ${libPath}`);
+                        } else {
+                            logger.debug(`[CLASSPATH] Already included: ${libPath}`);
                         }
                     } else {
                         // === FIX #5: Logovat chybějící soubory ===
                         missingLibraries.push(libPath);
                         logger.warn(`[MC-DIRECT] VAROVÁNÍ: Chybí knihovna: ${path.basename(libPath)}`);
+                        logger.debug(`[CLASSPATH] MISSING FILE: ${libPath}`);
                     }
+                } else {
+                    logger.debug(`[CLASSPATH] Failed to resolve path for ${lib.name}`);
                 }
             }
         };
@@ -640,6 +663,7 @@ class MinecraftDirect {
             }
 
             if (!nativeKey) {
+                logger.debug(`[NATIVES] No mapping for ${lib.name} on ${osClassifier} / ${osName}-${archName}`);
                 continue;
             }
 
