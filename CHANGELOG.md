@@ -3,6 +3,7 @@
 ## [2.4.13] - 2025-12-27
 ### Changed
 - Vylepšen vzhled nastavení: Možnost pro vypnutí optimalizací JVM je nyní moderní přepínač (switch) místo obyčejného zaškrtávacího políčka.
+- Zajištěno, že optimalizace jsou zapnuté (ON) i v případě, že uživatel nemá vytvořený `settings.json` (čistá instalace).
 
 ## [2.4.12] - 2025-12-27
 ### Added

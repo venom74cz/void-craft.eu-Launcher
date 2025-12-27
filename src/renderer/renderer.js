@@ -133,6 +133,9 @@ function loadSettingsModal() {
         } catch (e) {
             console.error('[SETTINGS] Chyba při načítání nastavení:', e);
         }
+    } else {
+        // Defaultní hodnoty pokud config neexistuje
+        document.getElementById('optimizedJvmArgs').checked = true;
     }
     if (ramValue > ramSlider.max) ramValue = ramSlider.max;
     ramSlider.value = ramValue;
