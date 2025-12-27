@@ -5,10 +5,16 @@ const util = require('util');
 
 class Logger {
     constructor() {
-        this.logDir = path.join(os.homedir(), '.void-craft-launcher');
-        this.logFile = path.join(this.logDir, 'latest.log');
+        this.baseDir = path.join(os.homedir(), '.void-craft-launcher');
+        this.logDir = path.join(this.baseDir, 'logs');
+
+        const date = new Date();
+        const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        this.logFile = path.join(this.logDir, `launcher-${dateStr}.log`);
+
         this.ensureLogDir();
-        this.clearLog();
+        // this.clearLog(); // Disabled to allow appending for the whole day
+        this.log('\n\n=== LAUNCHER SESSION START ===\n');
     }
 
     clearLog() {

@@ -202,7 +202,7 @@ class MinecraftDirect {
                         const replaced = arg
                             .replace(/\$\{natives_directory\}/g, path.join(this.gameDir, 'natives', versionName))
                             .replace(/\$\{launcher_name\}/g, 'void-craft-launcher')
-                            .replace(/\$\{launcher_version\}/g, '2.5.1')
+                            .replace(/\$\{launcher_version\}/g, '2.5.5')
                             .replace(/\$\{classpath\}/g, '')
                             .replace(/\$\{classpath_separator\}/g, path.delimiter)
                             .replace(/\$\{library_directory\}/g, path.join(this.gameDir, 'libraries'))
@@ -346,7 +346,14 @@ class MinecraftDirect {
 
                 let stderrBuffer = [];
 
+                const logsDir = path.join(this.gameDir, 'logs');
+                if (!fs.existsSync(logsDir)) {
+                    fs.mkdirSync(logsDir, { recursive: true });
+                }
+                const logStream = fs.createWriteStream(path.join(logsDir, 'latest.log'), { flags: 'w' });
+
                 minecraft.stdout.on('data', (data) => {
+                    logStream.write(data);
                     const lines = data.toString().split('\n');
                     lines.forEach(line => {
                         if (line.trim()) logger.log('[MINECRAFT]', line.trim());
@@ -354,6 +361,7 @@ class MinecraftDirect {
                 });
 
                 minecraft.stderr.on('data', (data) => {
+                    logStream.write(data);
                     const lines = data.toString().split('\n');
                     lines.forEach(line => {
                         if (line.trim()) {
@@ -366,6 +374,8 @@ class MinecraftDirect {
 
                 // 4. Detekce chybových kódů při ukončení
                 minecraft.on('close', (code) => {
+                    if (logStream) logStream.end();
+
                     if (code !== 0) {
                         logger.error(`[MC-DIRECT] Minecraft byl neočekávaně ukončen s chybovým kódem: ${code}`);
                         const crashReporter = require('./crash-reporter');
@@ -547,7 +557,7 @@ class MinecraftDirect {
             '${classpath_separator}': path.delimiter,
             '${natives_directory}': path.join(this.gameDir, 'natives', versionName),
             '${launcher_name}': 'void-craft-launcher',
-            '${launcher_version}': '2.5.1',
+            '${launcher_version}': '2.5.5',
             '${clientid}': 'void-craft',
             '${user_properties}': '{}'
         };

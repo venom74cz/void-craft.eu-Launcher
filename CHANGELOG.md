@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.5.5] - 2025-12-27
+### Fixed
+- **Log Persistence Fix:** Launcher nyní ručně zachytává výstup hry (stdout/stderr) a zapisuje ho přímo do `latest.log` ve složce hry. To zajistí, že logy budou uloženy i v případě, že hra spadne dříve, než stihne inicializovat svůj vlastní logovací systém (např. při pádu Javy nebo chybějících knihovnách).
+- **Launcher Log Path Fix:** Opravena cesta k logům launcheru. Nyní se správně ukládají do složky `logs` s datem v názvu (např. `launcher-2025-12-27.log`), což umožňuje crash reporteru je správně najít a odeslat.
+- **Daily Logs:** Launcher již nemaže své logy při každém spuštění, ale připisuje je. Tím se zachová historie pádů v rámci jednoho dne.
+
 ## [2.5.4] - 2025-12-27
 ### Changed
 - **Log Reset:** Launcher nyní při každém spuštění vymaže `latest.log` a začne zapisovat nanovo. Tím se zabrání nekonečnému narůstání souboru a zpřehlední se diagnostika (vždy máte log jen z posledního spuštění).

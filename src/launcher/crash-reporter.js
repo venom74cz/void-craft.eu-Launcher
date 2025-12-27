@@ -128,7 +128,7 @@ class CrashReporter {
                     { name: '💻 Systém', value: `${os.platform()} ${os.arch()}`, inline: true },
                     { name: '🕐 Čas', value: new Date().toLocaleString('cs-CZ'), inline: true }
                 ],
-                footer: { text: 'Void-Craft Launcher v2.4.13' }
+                footer: { text: 'Void-Craft Launcher v2.5.5' }
             };
 
             await axios.post(this.webhookUrl, { embeds: [embed] });
