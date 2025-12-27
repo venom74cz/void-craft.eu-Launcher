@@ -1,5 +1,9 @@
 # Changelog
 
+## [2.4.18] - 2025-12-27
+### Changed
+- Úprava formátu notifikace: ||@VERIFIED|| (spoiler tag).
+
 ## [2.4.17] - 2025-12-27
 ### Changed
 - Test funkčnosti Discord notifikací s @VERIFIED tagem.
