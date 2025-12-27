@@ -1,5 +1,9 @@
 # Changelog
 
+## [2.4.13] - 2025-12-27
+### Changed
+- Vylepšen vzhled nastavení: Možnost pro vypnutí optimalizací JVM je nyní moderní přepínač (switch) místo obyčejného zaškrtávacího políčka.
+
 ## [2.4.12] - 2025-12-27
 ### Added
 - Přidána možnost vypnout "Optimalizace JVM" v nastavení launcheru. Toto je doporučeno pouze pro uživatele, kterým hra padá ihned při spuštění kvůli problémům s pamětí nebo specifickým HW. Defaultně je tato možnost ZAPNUTA.
