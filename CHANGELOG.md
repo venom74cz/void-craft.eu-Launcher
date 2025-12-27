@@ -1,5 +1,9 @@
 # Changelog
 
+## [2.4.16] - 2025-12-27
+### Changed
+- Test funkčnosti Discord notifikací (Role Mention).
+
 ## [2.4.15] - 2025-12-27
 ### Added
 - Testovací vydání pro ověření Discord notifikací.
