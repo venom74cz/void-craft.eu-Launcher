@@ -105,7 +105,7 @@ class MinecraftDirect {
                         const replaced = arg
                             .replace(/\$\{natives_directory\}/g, path.join(this.gameDir, 'natives', versionName))
                             .replace(/\$\{launcher_name\}/g, 'void-craft-launcher')
-                            .replace(/\$\{launcher_version\}/g, '2.4.6')
+                            .replace(/\$\{launcher_version\}/g, '2.4.7')
                             .replace(/\$\{classpath\}/g, '')
                             .replace(/\$\{classpath_separator\}/g, path.delimiter)
                             .replace(/\$\{library_directory\}/g, path.join(this.gameDir, 'libraries'))
@@ -279,11 +279,30 @@ class MinecraftDirect {
         const processLibraries = (libs) => {
             if (!libs) return;
             for (const lib of libs) {
+                let libPath = null;
+
                 if (lib.downloads && lib.downloads.artifact) {
-                    const libPath = path.join(this.gameDir, 'libraries', lib.downloads.artifact.path);
-                    if (fs.existsSync(libPath) && !libraries.includes(libPath)) {
-                        libraries.push(libPath);
+                    libPath = path.join(this.gameDir, 'libraries', lib.downloads.artifact.path);
+                } else if (lib.name) {
+                    // Fallback: Construct path from Maven coordinate
+                    // Format: Group:Artifact:Version[:Classifier]
+                    const parts = lib.name.split(':');
+                    if (parts.length >= 3) {
+                        const groupId = parts[0].replace(/\./g, path.sep);
+                        const artifactId = parts[1];
+                        const version = parts[2];
+                        let classifier = '';
+                        if (parts.length > 3) {
+                            classifier = `-${parts[3]}`;
+                        }
+
+                        const jarName = `${artifactId}-${version}${classifier}.jar`;
+                        libPath = path.join(this.gameDir, 'libraries', groupId, artifactId, version, jarName);
                     }
+                }
+
+                if (libPath && fs.existsSync(libPath) && !libraries.includes(libPath)) {
+                    libraries.push(libPath);
                 }
             }
         };
@@ -350,7 +369,7 @@ class MinecraftDirect {
             '${classpath_separator}': path.delimiter,
             '${natives_directory}': path.join(this.gameDir, 'natives', versionName),
             '${launcher_name}': 'void-craft-launcher',
-            '${launcher_version}': '2.4.6',
+            '${launcher_version}': '2.4.7',
             '${clientid}': 'void-craft',
             '${user_properties}': '{}'
         };

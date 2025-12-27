@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.4.7] - 2025-12-27
+
+### ⚡ Vylepšení & Opravy
+
+-   **Prioritizace Javy:** Launcher nyní ignoruje systémovou Javu a manuální nastavení. Vždy používá svou vlastní ověřenou verzi Javy 21 (staženou do `.void-craft-launcher/java`), což zaručuje konzistenci a eliminuje chyby "Class version mismatch".
+-   **Oprava knihoven:** Opravena chyba v načítání knihoven modpacku (např. Mixin, Sinytra Connector), které neměly přímou cestu ke stažení v manifestu. Launcher nyní správně sestaví cestu podle Maven koordinátů.
+
 ## [2.4.6] - 2025-12-27
 
 ### ⚡ Vylepšení & Opravy

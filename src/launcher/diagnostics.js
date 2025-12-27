@@ -179,14 +179,11 @@ class Diagnostics {
             }
 
             if (missingFiles.length > 0) {
-                // Pokusit se opravit - smazat .installed a vynutit reinstalaci
-                console.log('[DIAGNOSTICS] Chybějící soubory, označuji pro reinstalaci...');
-                fs.unlinkSync(installedPath);
-
+                console.warn('[DIAGNOSTICS] Chybějící soubory:', missingFiles);
                 return {
-                    status: 'ok',
-                    message: `Chyběly soubory (${missingFiles.join(', ')}), označeno pro reinstalaci`,
-                    autoFixed: true
+                    status: 'error',
+                    message: `Chybí soubory: ${missingFiles.join(', ')}. Zkuste přeinstalovat modpack.`,
+                    autoFixed: false
                 };
             }
 
