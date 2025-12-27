@@ -129,6 +129,7 @@ function loadSettingsModal() {
             if (settings.ramAllocation) ramValue = Number(settings.ramAllocation);
             if (settings.resolution) document.getElementById('resolution').value = settings.resolution;
             if (settings.javaPath) document.getElementById('javaPath').value = settings.javaPath;
+            document.getElementById('optimizedJvmArgs').checked = settings.optimizedJvmArgs !== false; // Default true
         } catch (e) {
             console.error('[SETTINGS] Chyba při načítání nastavení:', e);
         }
@@ -144,7 +145,8 @@ function saveSettingsModal() {
     const settings = {
         ramAllocation: ramValue,
         resolution: document.getElementById('resolution').value,
-        javaPath: document.getElementById('javaPath').value
+        javaPath: document.getElementById('javaPath').value,
+        optimizedJvmArgs: document.getElementById('optimizedJvmArgs').checked
     };
 
     const configDir = path.dirname(configPath);

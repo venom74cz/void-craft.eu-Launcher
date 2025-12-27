@@ -1,5 +1,9 @@
 # Changelog
 
+## [2.4.12] - 2025-12-27
+### Added
+- Přidána možnost vypnout "Optimalizace JVM" v nastavení launcheru. Toto je doporučeno pouze pro uživatele, kterým hra padá ihned při spuštění kvůli problémům s pamětí nebo specifickým HW. Defaultně je tato možnost ZAPNUTA.
+
 ## [2.4.11] - 2025-12-27
 ### Fixed
 - Oprava diagnostického nástroje (tlačítko "Test spuštění"). Nástroj nyní správně hledá soubory hry ve složce modpacku, nikoliv v hlavní složce launcheru, což dříve způsobovalo falešné hlášení o chybějících souborech.

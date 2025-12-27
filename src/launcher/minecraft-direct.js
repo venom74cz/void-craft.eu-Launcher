@@ -105,7 +105,7 @@ class MinecraftDirect {
                         const replaced = arg
                             .replace(/\$\{natives_directory\}/g, path.join(this.gameDir, 'natives', versionName))
                             .replace(/\$\{launcher_name\}/g, 'void-craft-launcher')
-                            .replace(/\$\{launcher_version\}/g, '2.4.11')
+                            .replace(/\$\{launcher_version\}/g, '2.4.12')
                             .replace(/\$\{classpath\}/g, '')
                             .replace(/\$\{classpath_separator\}/g, path.delimiter)
                             .replace(/\$\{library_directory\}/g, path.join(this.gameDir, 'libraries'))
@@ -133,43 +133,61 @@ class MinecraftDirect {
             }
 
             // Optimalizované JVM flagy pro Minecraft (Java 21+ s G1GC)
-            const extraJvmFlags = [
-                '-XX:+UnlockExperimentalVMOptions',
-                '-XX:+UnlockDiagnosticVMOptions',
-                '-XX:+AlwaysActAsServerClassMachine',
-                '-XX:+AlwaysPreTouch',
-                '-XX:+DisableExplicitGC',
-                '-XX:+UseNUMA',
-                '-XX:NmethodSweepActivity=1',
-                '-XX:ReservedCodeCacheSize=400M',
-                '-XX:NonNMethodCodeHeapSize=12M',
-                '-XX:ProfiledCodeHeapSize=194M',
-                '-XX:NonProfiledCodeHeapSize=194M',
-                '-XX:-DontCompileHugeMethods',
-                '-XX:MaxNodeLimit=240000',
-                '-XX:NodeLimitFudgeFactor=8000',
-                '-XX:+UseVectorCmov',
-                '-XX:+PerfDisableSharedMem',
-                '-XX:+UseFastUnorderedTimeStamps',
-                '-XX:+UseCriticalJavaThreadPriority',
-                '-XX:ThreadPriorityPolicy=1',
-                '-XX:AllocatePrefetchStyle=3',
-                '-XX:+UseG1GC',
-                '-XX:MaxGCPauseMillis=50',
-                '-XX:G1HeapRegionSize=16M',
-                '-XX:G1NewSizePercent=23',
-                '-XX:G1ReservePercent=20',
-                '-XX:SurvivorRatio=32',
-                '-XX:G1MixedGCCountTarget=3',
-                '-XX:G1HeapWastePercent=20',
-                '-XX:InitiatingHeapOccupancyPercent=10',
-                '-XX:G1RSetUpdatingPauseTimePercent=0',
-                '-XX:MaxTenuringThreshold=1'
-            ];
+            // Načíst nastavení
+            let useOptimizedArgs = true;
+            try {
+                const configPath = path.join(os.homedir(), '.void-craft-launcher', 'settings.json');
+                if (fs.existsSync(configPath)) {
+                    const settings = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+                    if (settings.optimizedJvmArgs === false) {
+                        useOptimizedArgs = false;
+                        console.log('[MC-DIRECT] Uživatelské nastavení: Optimalizace JVM vypnuty');
+                    }
+                }
+            } catch (e) {
+                console.warn('[MC-DIRECT] Nepodařilo se načíst nastavení JVM:', e);
+            }
 
-            for (const flag of extraJvmFlags) {
-                if (!jvmArgs.includes(flag)) {
-                    jvmArgs.push(flag);
+            if (useOptimizedArgs) {
+                console.log('[MC-DIRECT] Aplikuji optimalizované JVM flagy...');
+                const extraJvmFlags = [
+                    '-XX:+UnlockExperimentalVMOptions',
+                    '-XX:+UnlockDiagnosticVMOptions',
+                    '-XX:+AlwaysActAsServerClassMachine',
+                    '-XX:+AlwaysPreTouch',
+                    '-XX:+DisableExplicitGC',
+                    '-XX:+UseNUMA',
+                    '-XX:NmethodSweepActivity=1',
+                    '-XX:ReservedCodeCacheSize=400M',
+                    '-XX:NonNMethodCodeHeapSize=12M',
+                    '-XX:ProfiledCodeHeapSize=194M',
+                    '-XX:NonProfiledCodeHeapSize=194M',
+                    '-XX:-DontCompileHugeMethods',
+                    '-XX:MaxNodeLimit=240000',
+                    '-XX:NodeLimitFudgeFactor=8000',
+                    '-XX:+UseVectorCmov',
+                    '-XX:+PerfDisableSharedMem',
+                    '-XX:+UseFastUnorderedTimeStamps',
+                    '-XX:+UseCriticalJavaThreadPriority',
+                    '-XX:ThreadPriorityPolicy=1',
+                    '-XX:AllocatePrefetchStyle=3',
+                    '-XX:+UseG1GC',
+                    '-XX:MaxGCPauseMillis=50',
+                    '-XX:G1HeapRegionSize=16M',
+                    '-XX:G1NewSizePercent=23',
+                    '-XX:G1ReservePercent=20',
+                    '-XX:SurvivorRatio=32',
+                    '-XX:G1MixedGCCountTarget=3',
+                    '-XX:G1HeapWastePercent=20',
+                    '-XX:InitiatingHeapOccupancyPercent=10',
+                    '-XX:G1RSetUpdatingPauseTimePercent=0',
+                    '-XX:MaxTenuringThreshold=1'
+                ];
+
+                for (const flag of extraJvmFlags) {
+                    if (!jvmArgs.includes(flag)) {
+                        jvmArgs.push(flag);
+                    }
                 }
             }
 
@@ -369,7 +387,7 @@ class MinecraftDirect {
             '${classpath_separator}': path.delimiter,
             '${natives_directory}': path.join(this.gameDir, 'natives', versionName),
             '${launcher_name}': 'void-craft-launcher',
-            '${launcher_version}': '2.4.11',
+            '${launcher_version}': '2.4.12',
             '${clientid}': 'void-craft',
             '${user_properties}': '{}'
         };
