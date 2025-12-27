@@ -1,5 +1,25 @@
 # Changelog
 
+## [2.5.0] - 2025-12-27
+
+### ⚡ Critical Stability Update (PrismLauncher Parity)
+Tato aktualizace přináší kompletní přepracování spouštěcí logiky podle standardů PrismLauncheru. Cílem je odstranit crashe a nekompatibilitu na různých systémech.
+
+### ✨ Novinky a Opravy
+- **Intel Driver Fix (Windows):** Přidán workaround pro známý crash na Intel grafikách (`HeapDumpPath` hack).
+- **MacOS Podpora:** Přidán `-XstartOnFirstThread` pro správný běh na Apple Silicon (M1/M2/M3).
+- **Oprava Library Rules:** Launcher nyní správně filtruje knihovny podle OS (nepokouší se načítat Linux knihovny na Windows).
+- **Architektura Natives:** Opravena detekce 32/64-bit natives knihoven.
+- **Client JAR:** Opravena chyba, kdy v classpath mohl chybět samotný soubor hry.
+- **Logování chyb:** Launcher nyní upozorní na chybějící soubory v konzoli místo tichého pádu.
+
+### 🔧 Technické Změny
+- Synchronizováno s logikou `LaunchTask` z PrismLauncheru.
+- Vylepšená detekce `1.19+` Asset Indexů.
+- Optimalizované JVM argumenty zůstávají zachovány.
+
+> **Poznámka:** Tato verze by měla vyřešit většinu "náhodných" pádů při startu hry.
+
 ## [2.4.20] - 2025-12-27
 ### Changed
 - Oprava Role ID pro Discord notifikace.
