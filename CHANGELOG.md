@@ -1,5 +1,9 @@
 # Changelog
 
+## [2.4.15] - 2025-12-27
+### Added
+- Testovací vydání pro ověření Discord notifikací.
+
 ## [2.4.13] - 2025-12-27
 ### Changed
 - Vylepšen vzhled nastavení: Možnost pro vypnutí optimalizací JVM je nyní moderní přepínač (switch) místo obyčejného zaškrtávacího políčka.

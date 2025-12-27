@@ -6,6 +6,9 @@ on:
       - main
       - master
 
+permissions:
+  contents: write
+
 jobs:
   build-windows:
     runs-on: windows-latest
@@ -44,3 +47,72 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run build -- --publish always
+
+  notify-discord:
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    needs: [build-windows, build-linux]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get Version from package.json
+        id: get_version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "Detected version: $VERSION"
+
+      - name: Get Release Notes
+        id: get_release_notes
+        run: |
+          VERSION="${{ env.VERSION }}"
+          # Get the content between the current version header and the next version header
+          awk -v ver="\\\\[$VERSION\\\\]" '
+            /^## / { 
+              if (p) exit; 
+              if ($0 ~ ver) { 
+                p=1; next 
+              } 
+            } 
+            p
+          ' CHANGELOG.md > release_notes.md
+          
+          # Trim whitespace
+          sed -i -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' release_notes.md
+          
+          if [ ! -s release_notes.md ]; then
+            echo "No specific release notes found for version $VERSION." > release_notes.md
+          fi
+          
+          echo "Extracted Release Notes:"
+          cat release_notes.md
+
+      - name: Notify Discord
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DISCORD_WEBHOOK: ${{ secrets.LAUNCHER_UPDATE }}
+        run: |
+          cp release_notes.md release_body.txt
+          
+          jq -n \
+            --rawfile body release_body.txt \
+            --arg version "v${{ env.VERSION }}" \
+            --arg avatar "https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png" \
+            --arg content "||@everyone||" \
+            --arg footer "Voidium Release Changelog" \
+            '{
+              username: "Release Changelog",
+              avatar_url: $avatar,
+              content: $content,
+              embeds: [{
+                title: $version,
+                description: ($body // "No release notes"),
+                color: 2105893,
+                footer: { text: $footer }
+              }]
+            }' > payload.json
+            
+          curl -H "Content-Type: application/json" -d @payload.json "$DISCORD_WEBHOOK"
