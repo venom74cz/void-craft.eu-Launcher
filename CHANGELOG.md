@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.5.1] - 2025-12-27
+### Fixed
+- **Module Conflict Error (ResolutionException):** Opravena kritická chyba při spouštění NeoForge 1.21.1 a novějších, která způsobovala crash hry (konflikt modulů `minecraft` a vanilla verze). Oprava spočívá v tom, že launcher již nepřidává `client.jar` do classpath, pokud je detekován `BootstrapLauncher`.
+- **Modpack Installer EPERM:** Opravena chyba `EPERM` při instalaci/aktualizaci modpacku (přesun shaderpacků), kdy instalátor mohl selhat, pokud cílový soubor již existoval. Nyní se cílový soubor bezpečně smaže.
+- **Modpack Installer Logging:** Přidáno podrobné logování do `modpack-installer.js`. Všechny akce instalátoru se nyní zapisují do `latest.log`.
+
 ## [2.5.0] - 2025-12-27
 
 ### ⚡ Critical Stability Update (PrismLauncher Parity)

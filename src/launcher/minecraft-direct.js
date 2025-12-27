@@ -191,7 +191,7 @@ class MinecraftDirect {
                         const replaced = arg
                             .replace(/\$\{natives_directory\}/g, path.join(this.gameDir, 'natives', versionName))
                             .replace(/\$\{launcher_name\}/g, 'void-craft-launcher')
-                            .replace(/\$\{launcher_version\}/g, '2.5.0')
+                            .replace(/\$\{launcher_version\}/g, '2.5.1')
                             .replace(/\$\{classpath\}/g, '')
                             .replace(/\$\{classpath_separator\}/g, path.delimiter)
                             .replace(/\$\{library_directory\}/g, path.join(this.gameDir, 'libraries'))
@@ -458,16 +458,24 @@ class MinecraftDirect {
         // Přidat modloader knihovny
         processLibraries(versionData.libraries);
 
-        // === FIX #4: Přidat client JAR do classpath ===
-        const clientJarPath = path.join(this.gameDir, 'versions', vanillaVersion, `${vanillaVersion}.jar`);
-        if (fs.existsSync(clientJarPath)) {
-            if (!libraries.includes(clientJarPath)) {
-                libraries.push(clientJarPath);
-                logger.log('[MC-DIRECT] Přidán client JAR:', path.basename(clientJarPath));
+        // === FIX #4: Přidat client JAR do classpath (JEN POKUD TO NENÍ BOOTSTRAPLAUNCHER) ===
+        // Pro moderní NeoForge/Forge (BootstrapLauncher) nepřidávat client.jar do classpath,
+        // protože to způsobuje konflikt modulů (ResolutionException).
+        const isBootstrapLauncher = versionData.mainClass && versionData.mainClass.includes('cpw.mods.bootstraplauncher.BootstrapLauncher');
+
+        if (!isBootstrapLauncher) {
+            const clientJarPath = path.join(this.gameDir, 'versions', vanillaVersion, `${vanillaVersion}.jar`);
+            if (fs.existsSync(clientJarPath)) {
+                if (!libraries.includes(clientJarPath)) {
+                    libraries.push(clientJarPath);
+                    logger.log('[MC-DIRECT] Přidán client JAR:', path.basename(clientJarPath));
+                }
+            } else {
+                logger.warn('[MC-DIRECT] VAROVÁNÍ: Client JAR nenalezen:', clientJarPath);
+                missingLibraries.push(clientJarPath);
             }
         } else {
-            logger.warn('[MC-DIRECT] VAROVÁNÍ: Client JAR nenalezen:', clientJarPath);
-            missingLibraries.push(clientJarPath);
+            logger.log('[MC-DIRECT] Detekován BootstrapLauncher, přeskakuji explicitní přidání client.jar do classpath.');
         }
 
         // Report missing libraries
@@ -523,7 +531,7 @@ class MinecraftDirect {
             '${classpath_separator}': path.delimiter,
             '${natives_directory}': path.join(this.gameDir, 'natives', versionName),
             '${launcher_name}': 'void-craft-launcher',
-            '${launcher_version}': '2.5.0',
+            '${launcher_version}': '2.5.1',
             '${clientid}': 'void-craft',
             '${user_properties}': '{}'
         };
