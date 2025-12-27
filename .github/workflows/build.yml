@@ -101,8 +101,8 @@ jobs:
             --rawfile body release_body.txt \
             --arg version "v${{ env.VERSION }}" \
             --arg avatar "https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png" \
-            --arg content "<@&1454127273421701261>" \
-            --arg footer "VO Release Changelog" \
+            --arg content "@VERIFIED" \
+            --arg footer "VOID-CRAFT LAUNCHER Changelog" \
             '{
               username: "Release Changelog",
               avatar_url: $avatar,

@@ -1,5 +1,9 @@
 # Changelog
 
+## [2.4.17] - 2025-12-27
+### Changed
+- Test funkčnosti Discord notifikací s @VERIFIED tagem.
+
 ## [2.4.16] - 2025-12-27
 ### Changed
 - Test funkčnosti Discord notifikací (Role Mention).
