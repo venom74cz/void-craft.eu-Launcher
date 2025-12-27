@@ -1,5 +1,9 @@
 # Changelog
 
+## [2.4.8] - 2025-12-27
+### Fixed
+- Oprava pádu hry na Java 21 kvůli nekompatibilní knihovně `sponge-mixin` (verze 0.8.7). Launcher nyní tuto knihovnu ignoruje a nutí hru použít kompatibilní verzi z NeoForge/Sinytra.
+
 ## [2.4.7] - 2025-12-27
 
 ### ⚡ Vylepšení & Opravy

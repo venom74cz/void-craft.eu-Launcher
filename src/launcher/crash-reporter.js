@@ -128,7 +128,7 @@ class CrashReporter {
                     { name: '💻 Systém', value: `${os.platform()} ${os.arch()}`, inline: true },
                     { name: '🕐 Čas', value: new Date().toLocaleString('cs-CZ'), inline: true }
                 ],
-                footer: { text: 'Void-Craft Launcher v2.4.7' }
+                footer: { text: 'Void-Craft Launcher v2.4.8' }
             };
 
             await axios.post(this.webhookUrl, { embeds: [embed] });
@@ -138,6 +138,15 @@ class CrashReporter {
     }
 
     async reportGameCrash(exitCode, stderrOutput, gameDir) {
+        // Ignorovat známé "neškodné" exit kódy
+        // 3221226505 (0xC0000409) - STATUS_STACK_BUFFER_OVERRUN (často při ukončování hry/OpenAL)
+        // -1073740791 - Signed verze téhož
+        // 1 - Generic error (občas při násilném ukončení)
+        if (exitCode === 1 || exitCode === 3221226505 || exitCode === -1073740791) {
+            console.log('[CRASH-REPORTER] Ignoruji exit code (známý shutdown problém):', exitCode);
+            return;
+        }
+
         try {
             // Použít nativní FormData
             const form = new FormData();
