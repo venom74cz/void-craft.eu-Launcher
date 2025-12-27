@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.4.11] - 2025-12-27
+### Fixed
+- Oprava diagnostického nástroje (tlačítko "Test spuštění"). Nástroj nyní správně hledá soubory hry ve složce modpacku, nikoliv v hlavní složce launcheru, což dříve způsobovalo falešné hlášení o chybějících souborech.
+
+## [2.4.10] - 2025-12-27
+### Reverted
+- Vrácena změna filrtování knihovny `sponge-mixin`. Ukázalo se, že Sinytra Connector tuto knihovnu vyžaduje ke své funkci, a její smazání způsobilo okamžitý pád (chyba při načítání modů). Detekce `libraries` složky zůstává aktivní.
+
+## [2.4.9] - 2025-12-27
+### Fixed
+- Oprava detekce chybějících knihoven. Pokud chybí složka `libraries`, launcher nyní automaticky spustí opravnou instalaci.
+
 ## [2.4.8] - 2025-12-27
 ### Fixed
 - Oprava pádu hry na Java 21 kvůli nekompatibilní knihovně `sponge-mixin` (verze 0.8.7). Launcher nyní tuto knihovnu ignoruje a nutí hru použít kompatibilní verzi z NeoForge/Sinytra.

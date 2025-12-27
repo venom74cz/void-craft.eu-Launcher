@@ -118,23 +118,28 @@ class Diagnostics {
                 };
             }
 
+            // Pokud máme modpackDir, použijeme ho jako gameDir pro kontrolu souborů
+            // protože launcher instaluje verze, knihovny a assets do složky modpacku
+            const effectiveGameDir = installedModpackDir || gameDir;
+
             // Zkontrolovat verzi JSON
             const versionName = manifest.minecraft?.version || '1.20.1';
-            const versionJsonPath = path.join(gameDir, 'versions', versionName, `${versionName}.json`);
+            const versionJsonPath = path.join(effectiveGameDir, 'versions', versionName, `${versionName}.json`);
 
             let missingFiles = [];
             if (!fs.existsSync(versionJsonPath)) {
+                console.warn('[DIAGNOSTICS] Version JSON nenalezen:', versionJsonPath);
                 missingFiles.push(`Version JSON: ${versionName}`);
             }
 
             // Zkontrolovat assets
-            const assetsDir = path.join(gameDir, 'assets');
+            const assetsDir = path.join(effectiveGameDir, 'assets');
             if (!fs.existsSync(assetsDir)) {
                 missingFiles.push('Assets');
             }
 
             // Zkontrolovat kritické knihovny (libraries)
-            const librariesDir = path.join(gameDir, 'libraries');
+            const librariesDir = path.join(effectiveGameDir, 'libraries');
             if (fs.existsSync(librariesDir) && fs.existsSync(versionJsonPath)) {
                 try {
                     const versionJson = JSON.parse(fs.readFileSync(versionJsonPath, 'utf8'));

@@ -105,7 +105,7 @@ class MinecraftDirect {
                         const replaced = arg
                             .replace(/\$\{natives_directory\}/g, path.join(this.gameDir, 'natives', versionName))
                             .replace(/\$\{launcher_name\}/g, 'void-craft-launcher')
-                            .replace(/\$\{launcher_version\}/g, '2.4.8')
+                            .replace(/\$\{launcher_version\}/g, '2.4.11')
                             .replace(/\$\{classpath\}/g, '')
                             .replace(/\$\{classpath_separator\}/g, path.delimiter)
                             .replace(/\$\{library_directory\}/g, path.join(this.gameDir, 'libraries'))
@@ -281,14 +281,6 @@ class MinecraftDirect {
             for (const lib of libs) {
                 let libPath = null;
 
-                // Filtrování problematických knihoven
-                // 'sponge-mixin' pro Fabric často obsahuje starý ASM nekompatibilní s Java 21 (Class 65 vs 61)
-                // NeoForge/Sinytra by měly používat svou vlastní verzi.
-                if (lib.name && lib.name.includes('sponge-mixin')) {
-                    console.warn('[LIBRARY] Ignoruji problematickou knihovnu:', lib.name);
-                    continue;
-                }
-
                 if (lib.downloads && lib.downloads.artifact) {
                     libPath = path.join(this.gameDir, 'libraries', lib.downloads.artifact.path);
                 } else if (lib.name) {
@@ -377,7 +369,7 @@ class MinecraftDirect {
             '${classpath_separator}': path.delimiter,
             '${natives_directory}': path.join(this.gameDir, 'natives', versionName),
             '${launcher_name}': 'void-craft-launcher',
-            '${launcher_version}': '2.4.8',
+            '${launcher_version}': '2.4.11',
             '${clientid}': 'void-craft',
             '${user_properties}': '{}'
         };

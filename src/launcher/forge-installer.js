@@ -290,9 +290,14 @@ class ForgeInstaller {
         const neoforgeJson = path.join(neoforgePath, `neoforge-${neoforgeVersion}.json`);
 
         const exists = fs.existsSync(neoforgeJson);
-        console.log('[NEOFORGE] Kontrola instalace:', neoforgeJson, '- Existuje:', exists);
 
-        return exists;
+        // Kontrola existence libraries složky
+        const libDir = path.join(this.minecraftDir, 'libraries');
+        const libExists = fs.existsSync(libDir) && fs.readdirSync(libDir).length > 0;
+
+        console.log('[NEOFORGE] Kontrola instalace:', neoforgeJson, '- JSON:', exists, '- Libs:', libExists);
+
+        return exists && libExists;
     }
 
     isFabricInstalled(minecraftVersion, fabricVersion) {
