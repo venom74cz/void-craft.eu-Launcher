@@ -1,5 +1,9 @@
 # Changelog
 
+## [2.5.4] - 2025-12-27
+### Changed
+- **Log Reset:** Launcher nyní při každém spuštění vymaže `latest.log` a začne zapisovat nanovo. Tím se zabrání nekonečnému narůstání souboru a zpřehlední se diagnostika (vždy máte log jen z posledního spuštění).
+
 ## [2.5.3] - 2025-12-27
 ### Added
 - **Verbose Logging:** Launcher nyní zapisuje detailní debug informace do `latest.log` (kontrola knihoven, pravidel, natives, celá spouštěcí classpath a argumenty). Toto pomůže při diagnostice problémů, kde launcher "mlčí" nebo crashne bez jasné příčiny.

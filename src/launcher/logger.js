@@ -8,6 +8,15 @@ class Logger {
         this.logDir = path.join(os.homedir(), '.void-craft-launcher');
         this.logFile = path.join(this.logDir, 'latest.log');
         this.ensureLogDir();
+        this.clearLog();
+    }
+
+    clearLog() {
+        try {
+            fs.writeFileSync(this.logFile, '', 'utf8');
+        } catch (e) {
+            console.error('[LOGGER] Failed to clear log file:', e);
+        }
     }
 
     ensureLogDir() {
